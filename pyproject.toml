@@ -6,9 +6,11 @@ authors = [
     { name = "Marc Garreau", email = "marc@ethereum.org" }
 ]
 dependencies = [
-  "py-solc-x",
-  "pyperclip",
-  "textual",
+    "py-solc-x",
+    "pyperclip",
+    "textual",
+    # "titanoboa>=0.1.9",
+    "titanoboa@git+https://github.com/vyperlang/titanoboa#egg=master",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"

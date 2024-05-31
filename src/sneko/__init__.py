@@ -3,9 +3,12 @@
 #     return 0
 import os
 import json
+import sys
 import solcx
 import pyperclip
+import boa
 
+from pathlib import Path
 # from web3 import Web3, EthereumTesterProvider
 from rich.syntax import Syntax
 
@@ -64,13 +67,13 @@ class Sneko(App):
     def compose(self) -> ComposeResult:
         """Compose our UI."""
 
-        # path = "./contracts/" # if len(sys.argv) < 2 else sys.argv[1]
-        path = os.path.join(os.path.dirname(__file__), "contracts")
+        sneko_contracts_path = os.path.join(os.path.dirname(__file__), "contracts")
+        path = sneko_contracts_path if len(sys.argv) < 2 else sys.argv[1]
 
         yield Header()
         yield Container(
             DirectoryTree(path, id="tree-view"),
-            TextArea.code_editor(text=DEFAULT_CODE, id="code-view"),
+            TextArea.code_editor(text="", id="code-view"),
         )
         yield Container(
             Horizontal(
@@ -113,27 +116,35 @@ class Sneko(App):
         self.query_one("#error-view", Static).update("")
         code_view = self.query_one("#code-view", TextArea)
         code = code_view.text
+        abi_value = ""
+        bytecode_value = ""
+
+        file_extension = Path(self.sub_title).suffix
 
         try:
-            compiled_sol = solcx.compile_source(
-                code, output_values=["abi", "bin", "bin-runtime"]
-            )
+            # SOLIDITY:
+            if file_extension == ".sol":
+                compiled_sol = solcx.compile_source(
+                    code, output_values=["abi", "bin", "bin-runtime"]
+                )
 
-            # Note: assumes only one contract:
-            contract_key = next(iter(compiled_sol))
-            contract_interface = compiled_sol[contract_key]
+                # Note: assumes only one contract:
+                contract_key = next(iter(compiled_sol))
+                contract_interface = compiled_sol[contract_key]
+                abi_value = json.dumps(contract_interface["abi"])
+                bytecode_value = json.dumps(contract_interface["bin"])
 
-            # w3 = Web3(EthereumTesterProvider())
-            # deploy = (
-            #     w3.eth.contract(abi=contract_interface["abi"], bytecode=contract_interface["bin"])
-            #     .constructor(42)
-            #     .transact()
-            # )
-            # contract_address = w3.eth.get_transaction_receipt(deploy)["contractAddress"]
-            # contract = w3.eth.contract(address=contract_address, abi=contract_interface["abi"])
+            # VYPER:
+            elif file_extension == ".vy":
+                contract = boa.loads(code)
+                abi_value = json.dumps(contract.abi)
+                bytecode_value = str(contract.bytecode.hex())
+
+            # WAT?
+            else:
+                raise Exception("Unsupported file extension")
+
         except Exception as e:
-            log(e)
-            # self.notify(e, severity="error", timeout=10)
             self.query_one("#error-view", Static).update(str(e))
             self.query_one("#abi-view", Input).value = "oop!"
             self.query_one("#bytecode-view", Input).value = "oop!"
@@ -148,17 +159,26 @@ class Sneko(App):
 
         # UPDATE VIEWS
         abi_input = self.query_one("#abi-view", Input)
-        abi_input.value = json.dumps(contract_interface["abi"])
+        abi_input.value = abi_value
         abi_button = self.query_one("#copy-abi-button", Button)
         abi_button.disabled = False
 
         bytecode_input = self.query_one("#bytecode-view", Input)
-        bytecode_input.value = json.dumps(contract_interface["bin"])
+        bytecode_input.value = bytecode_value
         bytecode_button = self.query_one("#copy-bytecode-button", Button)
         bytecode_button.disabled = False
 
         generate_script_button = self.query_one("#generate-script-button", Button)
         generate_script_button.disabled = False
+
+        # w3 = Web3(EthereumTesterProvider())
+        # deploy = (
+        #     w3.eth.contract(abi=contract_interface["abi"], bytecode=contract_interface["bin"])
+        #     .constructor(42)
+        #     .transact()
+        # )
+        # contract_address = w3.eth.get_transaction_receipt(deploy)["contractAddress"]
+        # contract = w3.eth.contract(address=contract_address, abi=contract_interface["abi"])
         # self.query_one("#address-view", Static).update(contract_address)
 
     def generate_script(self) -> None:
