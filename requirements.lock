@@ -147,7 +147,7 @@ sortedcontainers==2.4.0
     # via trie
 textual==0.63.2
     # via sneko
-titanoboa @ git+https://github.com/vyperlang/titanoboa#egg=master@946b2dbb522e4272c7a08db46c6d1946bfb882e7
+titanoboa==0.1.10b1
     # via sneko
 toolz==0.12.1
     # via cytoolz

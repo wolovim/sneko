@@ -78,9 +78,7 @@ class Sneko(App):
         yield Container(
             Horizontal(
                 Button("Compile", id="compile-button", variant="primary"),
-                Select.from_values(
-                    [SOLIDITY_VERSION], value=SOLIDITY_VERSION, id="solidity-version"
-                ),
+                Input(placeholder="Compiler version ~", disabled=True, id="compiler-version"),
                 id="compile-grouping",
             ),
             Horizontal(
@@ -138,7 +136,7 @@ class Sneko(App):
             elif file_extension == ".vy":
                 contract = boa.loads(code)
                 abi_value = json.dumps(contract.abi)
-                bytecode_value = str(contract.bytecode.hex())
+                bytecode_value = f'"{contract.compiler_data.bytecode.hex()}"'
 
             # WAT?
             else:
@@ -184,10 +182,11 @@ class Sneko(App):
     def generate_script(self) -> None:
         abi = self.query_one("#abi-view", Input).value
         bytecode = self.query_one("#bytecode-view", Input).value
+        code_view = self.query_one("#code-view", TextArea)
+        code = code_view.text
+        content = f'CODE="""{code}"""\nABI={abi}\nBYTECODE={bytecode}\n\n'
 
         path = os.path.join(os.path.dirname(__file__), "snippets", "script.py")
-
-        content = f"ABI={abi}\nBYTECODE={bytecode}\n\n"
 
         # Read the content from the source file
         with open(path, "r") as src:
@@ -238,6 +237,34 @@ class Sneko(App):
             text_area.load_text(syntax.code)
             self.query_one("#code-view").scroll_home(animate=False)
             self.sub_title = str(event.path)
+
+            file_extension = Path(event.path).suffix
+            if file_extension == ".sol":
+                compiler_input = self.query_one("#compiler-version", Input)
+                compiler_input.value = f"solidity {SOLIDITY_VERSION}"
+            elif file_extension == ".vy":
+                compiler_input = self.query_one("#compiler-version", Input)
+                vyper_version = boa.contracts.vyper.vyper_contract.vyper.version.version
+                compiler_input.value = f"vyper {vyper_version}"
+            else:
+                compiler_input = self.query_one("#compiler-version", Input)
+                compiler_input.value = "wat? only vyper and solidity supported"
+
+            self.reset_inputs()
+
+    def reset_inputs(self) -> None:
+            abi_input = self.query_one("#abi-view", Input)
+            abi_input.value = ""
+            bytecode_input = self.query_one("#bytecode-view", Input)
+            bytecode_input.value = ""
+
+            # Disable buttons
+            abi_button = self.query_one("#copy-abi-button", Button)
+            abi_button.disabled = True
+            bytecode_button = self.query_one("#copy-bytecode-button", Button)
+            bytecode_button.disabled = True
+            generate_script_button = self.query_one("#generate-script-button", Button)
+            generate_script_button.disabled = True
 
     def action_toggle_files(self) -> None:
         """Called in response to key binding."""
