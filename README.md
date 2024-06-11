@@ -10,6 +10,7 @@ Terminal GUI for compiling (Solidity and Vyper) smart contracts.
 
 ## possible extensions
 
+- syntax highlighting
 - select compiler version
 - eth-tester auto-deploy + function & state read-outs
 - additional language support, e.g., Fe, Cairo

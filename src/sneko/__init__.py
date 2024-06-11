@@ -9,7 +9,7 @@ import pyperclip
 import boa
 
 from pathlib import Path
-# from web3 import Web3, EthereumTesterProvider
+from web3 import Web3, EthereumTesterProvider
 from rich.syntax import Syntax
 
 from textual import log
@@ -59,10 +59,14 @@ class Sneko(App):
     ]
 
     show_tree = var(True)
+    abi = None
+    bytecode = None
+
 
     def watch_show_tree(self, show_tree: bool) -> None:
         """Called when show_tree is modified."""
         self.set_class(show_tree, "-show-tree")
+
 
     def compose(self) -> ComposeResult:
         """Compose our UI."""
@@ -71,6 +75,7 @@ class Sneko(App):
         path = sneko_contracts_path if len(sys.argv) < 2 else sys.argv[1]
 
         yield Header()
+        # TODO: collapsible code view
         yield Container(
             DirectoryTree(path, id="tree-view"),
             TextArea.code_editor(text="", id="code-view"),
@@ -101,59 +106,58 @@ class Sneko(App):
                 variant="success",
                 disabled=True,
             ),
+            Horizontal(
+                Button(
+                    "Deploy",
+                    id="deploy-button",
+                    variant="success",
+                    disabled=True,
+                ),
+                Input(
+                    placeholder="Constructor args ~",
+                    id="constructor-args",
+                    disabled=True,
+                ),
+                # possible to show a REPL here?
+            ),
+            Static("", id="deploy-address"),
             Static("", id="error-view"),
             id="compilation-panel",
         )
         yield Footer()
 
+
     def action_copy_to_clipboard(self) -> None:
         code_view = self.query_one("#code-view", TextArea)
         pyperclip.copy(code_view.text)
 
-    def handle_compilation(self) -> None:
-        self.query_one("#error-view", Static).update("")
-        code_view = self.query_one("#code-view", TextArea)
-        code = code_view.text
-        abi_value = ""
-        bytecode_value = ""
 
-        file_extension = Path(self.sub_title).suffix
+    def handle_compile_error(self, e) -> None:
+        self.query_one("#error-view", Static).update(str(e))
+        self.query_one("#abi-view", Input).value = "oop!"
+        self.query_one("#bytecode-view", Input).value = "oop!"
 
-        try:
-            # SOLIDITY:
-            if file_extension == ".sol":
-                compiled_sol = solcx.compile_source(
-                    code, output_values=["abi", "bin", "bin-runtime"]
-                )
+        abi_button = self.query_one("#copy-abi-button", Button)
+        abi_button.disabled = True
+        bytecode_button = self.query_one("#copy-bytecode-button", Button)
+        bytecode_button.disabled = True
+        generate_script_button = self.query_one("#generate-script-button", Button)
+        generate_script_button.disabled = True
 
-                # Note: assumes only one contract:
-                contract_key = next(iter(compiled_sol))
-                contract_interface = compiled_sol[contract_key]
-                abi_value = json.dumps(contract_interface["abi"])
-                bytecode_value = json.dumps(contract_interface["bin"])
+        deploy_button = self.query_one("#deploy-button", Button)
+        deploy_button.disabled = True
+        contract_args_input = self.query_one("#constructor-args", Input)
+        contract_args_input.value = ""
+        contract_args_input.disabled = True
+        self.query_one("#deploy-address", Static).update("")
 
-            # VYPER:
-            elif file_extension == ".vy":
-                contract = boa.loads(code)
-                abi_value = json.dumps(contract.abi)
-                bytecode_value = f'"{contract.compiler_data.bytecode.hex()}"'
+        self.abi = None
+        self.bytecode = None
 
-            # WAT?
-            else:
-                raise Exception("Unsupported file extension")
 
-        except Exception as e:
-            self.query_one("#error-view", Static).update(str(e))
-            self.query_one("#abi-view", Input).value = "oop!"
-            self.query_one("#bytecode-view", Input).value = "oop!"
-
-            abi_button = self.query_one("#copy-abi-button", Button)
-            abi_button.disabled = True
-            bytecode_button = self.query_one("#copy-bytecode-button", Button)
-            bytecode_button.disabled = True
-            generate_script_button = self.query_one("#generate-script-button", Button)
-            generate_script_button.disabled = True
-            return
+    def handle_compile_success(self):
+        abi_value = self.abi
+        bytecode_value = self.bytecode
 
         # UPDATE VIEWS
         abi_input = self.query_one("#abi-view", Input)
@@ -169,15 +173,44 @@ class Sneko(App):
         generate_script_button = self.query_one("#generate-script-button", Button)
         generate_script_button.disabled = False
 
-        # w3 = Web3(EthereumTesterProvider())
-        # deploy = (
-        #     w3.eth.contract(abi=contract_interface["abi"], bytecode=contract_interface["bin"])
-        #     .constructor(42)
-        #     .transact()
-        # )
-        # contract_address = w3.eth.get_transaction_receipt(deploy)["contractAddress"]
-        # contract = w3.eth.contract(address=contract_address, abi=contract_interface["abi"])
-        # self.query_one("#address-view", Static).update(contract_address)
+        deploy_button = self.query_one("#deploy-button", Button)
+        deploy_button.disabled = False
+        contract_args_input = self.query_one("#constructor-args", Input)
+        contract_args_input.disabled = False
+
+
+    def handle_compilation(self) -> None:
+        self.query_one("#error-view", Static).update("")
+        code_view = self.query_one("#code-view", TextArea)
+        code = code_view.text
+
+        file_extension = Path(self.sub_title).suffix
+
+        try:
+            # SOLIDITY:
+            if file_extension == ".sol":
+                compiled_sol = solcx.compile_source(
+                    code, output_values=["abi", "bin", "bin-runtime"]
+                )
+                # Note: assumes only one contract:
+                contract_key = next(iter(compiled_sol))
+                contract_interface = compiled_sol[contract_key]
+                self.abi = json.dumps(contract_interface["abi"])
+                self.bytecode = json.dumps(contract_interface["bin"])
+            # VYPER:
+            elif file_extension == ".vy":
+                contract = boa.loads(code)
+                self.abi = json.dumps(contract.abi)
+                self.bytecode = f'"{contract.compiler_data.bytecode.hex()}"'
+            # WAT?
+            else:
+                raise Exception("Unsupported file extension")
+        except Exception as e:
+            self.handle_compile_error(e)
+            return
+
+        self.handle_compile_success()
+
 
     def generate_script(self) -> None:
         abi = self.query_one("#abi-view", Input).value
@@ -196,6 +229,25 @@ class Sneko(App):
         with open("output.py", "w") as dest:
             dest.write(content)
 
+
+    def handle_deploy(self) -> None:
+        abi = self.abi
+        bytecode = self.bytecode
+        formatted_bytecode = bytecode[1:-1] if bytecode else ""
+
+        # args_input = self.query_one("#constructor-args", Input).value
+
+        w3 = Web3(EthereumTesterProvider())
+        deploy = (
+            w3.eth.contract(abi=abi, bytecode=formatted_bytecode)
+            .constructor()  # TODO: proper noop
+            .transact()
+        )
+        contract_address = w3.eth.get_transaction_receipt(deploy)["contractAddress"]
+        contract = w3.eth.contract(address=contract_address, abi=abi)
+        self.query_one("#deploy-address", Static).update(contract_address)
+
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Called when any button is clicked."""
 
@@ -209,6 +261,8 @@ class Sneko(App):
             pyperclip.copy(input.value)
         elif event.button.id == "generate-script-button":
             self.generate_script()
+        elif event.button.id == "deploy-button":
+            self.handle_deploy()
         else:
             log("wat")
 
@@ -252,11 +306,14 @@ class Sneko(App):
 
             self.reset_inputs()
 
+
     def reset_inputs(self) -> None:
             abi_input = self.query_one("#abi-view", Input)
             abi_input.value = ""
             bytecode_input = self.query_one("#bytecode-view", Input)
             bytecode_input.value = ""
+            constructor_input = self.query_one("#constructor-args", Input)
+            constructor_input.value = ""
 
             # Disable buttons
             abi_button = self.query_one("#copy-abi-button", Button)
@@ -265,6 +322,12 @@ class Sneko(App):
             bytecode_button.disabled = True
             generate_script_button = self.query_one("#generate-script-button", Button)
             generate_script_button.disabled = True
+            deploy_button = self.query_one("#deploy-button", Button)
+            deploy_button.disabled = True
+
+            self.abi = None
+            self.bytecode = None
+
 
     def action_toggle_files(self) -> None:
         """Called in response to key binding."""
