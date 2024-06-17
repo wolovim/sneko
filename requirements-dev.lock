@@ -9,11 +9,16 @@
 #   generate-hashes: false
 
 -e file:.
+aiohttp==3.9.5
+    # via textual-dev
+aiosignal==1.3.1
+    # via aiohttp
 annotated-types==0.7.0
     # via pydantic
 asttokens==2.4.1
     # via vyper
 attrs==23.2.0
+    # via aiohttp
     # via hypothesis
 bitarray==2.9.2
     # via eth-account
@@ -29,6 +34,8 @@ charset-normalizer==3.3.2
 ckzg==1.0.2
     # via eth-account
     # via py-evm
+click==8.1.7
+    # via textual-dev
 coverage==7.5.3
     # via pytest-cov
 cytoolz==0.12.3
@@ -71,6 +78,9 @@ eth-utils==4.1.1
     # via py-evm
     # via rlp
     # via trie
+frozenlist==1.4.1
+    # via aiohttp
+    # via aiosignal
 hexbytes==1.2.0
     # via eth-account
     # via eth-rlp
@@ -79,6 +89,7 @@ hypothesis==6.103.0
     # via titanoboa
 idna==3.7
     # via requests
+    # via yarl
 importlib-metadata==7.1.0
     # via vyper
 iniconfig==2.0.0
@@ -95,6 +106,11 @@ mdit-py-plugins==0.4.1
     # via markdown-it-py
 mdurl==0.1.2
     # via markdown-it-py
+msgpack==1.0.8
+    # via textual-dev
+multidict==6.0.5
+    # via aiohttp
+    # via yarl
 packaging==23.2
     # via py-solc-x
     # via pytest
@@ -147,6 +163,8 @@ sortedcontainers==2.4.0
     # via trie
 textual==0.63.2
     # via sneko
+    # via textual-dev
+textual-dev==1.5.1
 titanoboa==0.1.10b1
     # via sneko
 toolz==0.12.1
@@ -157,6 +175,7 @@ typing-extensions==4.11.0
     # via pydantic
     # via pydantic-core
     # via textual
+    # via textual-dev
     # via titanoboa
 uc-micro-py==1.0.3
     # via linkify-it-py
@@ -166,5 +185,7 @@ vyper==0.3.10
     # via titanoboa
 wheel==0.43.0
     # via vyper
+yarl==1.9.4
+    # via aiohttp
 zipp==3.19.0
     # via importlib-metadata

@@ -9,7 +9,6 @@ import pyperclip
 import boa
 
 from pathlib import Path
-from web3 import Web3, EthereumTesterProvider
 from rich.syntax import Syntax
 
 from textual import log
@@ -23,28 +22,13 @@ from textual.widgets import (
     Header,
     Input,
     TextArea,
-    Select,
     Static,
 )
 
-SOLIDITY_VERSION = "0.8.24"
+__version__ = "0.0.3"
+SOLIDITY_VERSION = "0.8.26"
 solcx.install_solc(SOLIDITY_VERSION)
 solcx.set_solc_version(SOLIDITY_VERSION)
-
-DEFAULT_CODE = """// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
-
-contract Greeter {
-    string greeting;
-
-    constructor() {
-        greeting = "Hello, World!";
-    }
-
-    function greet() public view returns (string memory) {
-        return greeting;
-    }
-}"""
 
 
 class Sneko(App):
@@ -52,21 +36,20 @@ class Sneko(App):
 
     CSS_PATH = "main.tcss"
     BINDINGS = [
+        ("v", "noop", __version__),
         ("f", "toggle_files", "Toggle Files"),
-        ("q", "quit", "Quit"),
-        ("ctrl+p", "copy_to_clipboard"),
+        ("ctrl+p", "copy_to_clipboard", "Copy Code"),
         ("ctrl+v", "paste_from_clipboard"),
+        ("q", "quit", "Quit"),
     ]
 
     show_tree = var(True)
     abi = None
     bytecode = None
 
-
     def watch_show_tree(self, show_tree: bool) -> None:
         """Called when show_tree is modified."""
         self.set_class(show_tree, "-show-tree")
-
 
     def compose(self) -> ComposeResult:
         """Compose our UI."""
@@ -79,11 +62,18 @@ class Sneko(App):
         yield Container(
             DirectoryTree(path, id="tree-view"),
             TextArea.code_editor(text="", id="code-view"),
+            id="editor",
         )
         yield Container(
             Horizontal(
-                Button("Compile", id="compile-button", variant="primary"),
-                Input(placeholder="Compiler version ~", disabled=True, id="compiler-version"),
+                Button(
+                    "Compile", id="compile-button", variant="primary", disabled=True
+                ),
+                Input(
+                    placeholder="Compiler version ~",
+                    id="compiler-version",
+                    disabled=True,
+                ),
                 id="compile-grouping",
             ),
             Horizontal(
@@ -106,31 +96,17 @@ class Sneko(App):
                 variant="success",
                 disabled=True,
             ),
-            Horizontal(
-                Button(
-                    "Deploy",
-                    id="deploy-button",
-                    variant="success",
-                    disabled=True,
-                ),
-                Input(
-                    placeholder="Constructor args ~",
-                    id="constructor-args",
-                    disabled=True,
-                ),
-                # possible to show a REPL here?
-            ),
             Static("", id="deploy-address"),
+            Container(id="contract-playground"),
             Static("", id="error-view"),
             id="compilation-panel",
         )
         yield Footer()
 
-
     def action_copy_to_clipboard(self) -> None:
         code_view = self.query_one("#code-view", TextArea)
         pyperclip.copy(code_view.text)
-
+        self.notify("Code copied to clipboard")
 
     def handle_compile_error(self, e) -> None:
         self.query_one("#error-view", Static).update(str(e))
@@ -144,22 +120,51 @@ class Sneko(App):
         generate_script_button = self.query_one("#generate-script-button", Button)
         generate_script_button.disabled = True
 
-        deploy_button = self.query_one("#deploy-button", Button)
-        deploy_button.disabled = True
-        contract_args_input = self.query_one("#constructor-args", Input)
-        contract_args_input.value = ""
-        contract_args_input.disabled = True
-        self.query_one("#deploy-address", Static).update("")
-
         self.abi = None
         self.bytecode = None
 
+    def build_contract_playground(self) -> None:
+        abi_value = self.abi
+
+        # build an input and button per function in the ABI
+        abi = json.loads(abi_value)
+        for function in abi:
+            if function["type"] == "function":
+                function_name = function["name"]
+                function_inputs = function["inputs"]
+                function_outputs = function["outputs"]
+                function_state_mutability = function["stateMutability"]
+
+                # build the function signature
+                function_signature = f"{function_name}("
+                for i, input in enumerate(function_inputs):
+                    function_signature += f"{input['type']} {input['name']}"
+                    if i < len(function_inputs) - 1:
+                        function_signature += ", "
+                function_signature += ")"
+
+                # build the function view
+                function_view = Container(
+                    Static(function_signature),
+                    id=f"{function_name}-view",
+                )
+
+                # build the function playground
+                function_playground = Container(
+                    Input(placeholder="args ~"),
+                    Button("Execute", id=f"{function_name}-button", variant="success"),
+                    id=f"{function_name}-playground",
+                )
+
+                # mount the function view and playground
+                container = self.query_one("#contract-playground", Container)
+                container.mount(function_view)
+                container.mount(function_playground)
 
     def handle_compile_success(self):
         abi_value = self.abi
         bytecode_value = self.bytecode
 
-        # UPDATE VIEWS
         abi_input = self.query_one("#abi-view", Input)
         abi_input.value = abi_value
         abi_button = self.query_one("#copy-abi-button", Button)
@@ -173,11 +178,7 @@ class Sneko(App):
         generate_script_button = self.query_one("#generate-script-button", Button)
         generate_script_button.disabled = False
 
-        deploy_button = self.query_one("#deploy-button", Button)
-        deploy_button.disabled = False
-        contract_args_input = self.query_one("#constructor-args", Input)
-        contract_args_input.disabled = False
-
+        # self.build_contract_playground()
 
     def handle_compilation(self) -> None:
         self.query_one("#error-view", Static).update("")
@@ -211,7 +212,6 @@ class Sneko(App):
 
         self.handle_compile_success()
 
-
     def generate_script(self) -> None:
         abi = self.query_one("#abi-view", Input).value
         bytecode = self.query_one("#bytecode-view", Input).value
@@ -219,34 +219,15 @@ class Sneko(App):
         code = code_view.text
         content = f'CODE="""{code}"""\nABI={abi}\nBYTECODE={bytecode}\n\n'
 
-        path = os.path.join(os.path.dirname(__file__), "snippets", "script.py")
-
-        # Read the content from the source file
-        with open(path, "r") as src:
-            content += src.read()
-
-        # Write the modified content to the destination file
-        with open("output.py", "w") as dest:
-            dest.write(content)
-
-
-    def handle_deploy(self) -> None:
-        abi = self.abi
-        bytecode = self.bytecode
-        formatted_bytecode = bytecode[1:-1] if bytecode else ""
-
-        # args_input = self.query_one("#constructor-args", Input).value
-
-        w3 = Web3(EthereumTesterProvider())
-        deploy = (
-            w3.eth.contract(abi=abi, bytecode=formatted_bytecode)
-            .constructor()  # TODO: proper noop
-            .transact()
-        )
-        contract_address = w3.eth.get_transaction_receipt(deploy)["contractAddress"]
-        contract = w3.eth.contract(address=contract_address, abi=abi)
-        self.query_one("#deploy-address", Static).update(contract_address)
-
+        try:
+            path = os.path.join(os.path.dirname(__file__), "snippets", "script.py")
+            with open(path, "r") as src:
+                content += src.read()
+            with open("output.py", "w") as dest:
+                dest.write(content)
+            self.notify("Script generated: saved to ./output.py")
+        except Exception as e:
+            self.notify(f"Error generating script: {e}", severity="error")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Called when any button is clicked."""
@@ -256,13 +237,13 @@ class Sneko(App):
         elif event.button.id == "copy-abi-button":
             input = self.query_one("#abi-view", Input)
             pyperclip.copy(input.value)
+            self.notify("ABI copied to clipboard")
         elif event.button.id == "copy-bytecode-button":
             input = self.query_one("#bytecode-view", Input)
             pyperclip.copy(input.value)
+            self.notify("Bytecode copied to clipboard")
         elif event.button.id == "generate-script-button":
             self.generate_script()
-        elif event.button.id == "deploy-button":
-            self.handle_deploy()
         else:
             log("wat")
 
@@ -304,30 +285,27 @@ class Sneko(App):
                 compiler_input = self.query_one("#compiler-version", Input)
                 compiler_input.value = "wat? only vyper and solidity supported"
 
+            compile_button = self.query_one("#compile-button", Button)
+            compile_button.disabled = False
             self.reset_inputs()
 
-
     def reset_inputs(self) -> None:
-            abi_input = self.query_one("#abi-view", Input)
-            abi_input.value = ""
-            bytecode_input = self.query_one("#bytecode-view", Input)
-            bytecode_input.value = ""
-            constructor_input = self.query_one("#constructor-args", Input)
-            constructor_input.value = ""
+        # Clear inputs
+        abi_input = self.query_one("#abi-view", Input)
+        abi_input.value = ""
+        bytecode_input = self.query_one("#bytecode-view", Input)
+        bytecode_input.value = ""
 
-            # Disable buttons
-            abi_button = self.query_one("#copy-abi-button", Button)
-            abi_button.disabled = True
-            bytecode_button = self.query_one("#copy-bytecode-button", Button)
-            bytecode_button.disabled = True
-            generate_script_button = self.query_one("#generate-script-button", Button)
-            generate_script_button.disabled = True
-            deploy_button = self.query_one("#deploy-button", Button)
-            deploy_button.disabled = True
+        # Disable buttons
+        abi_button = self.query_one("#copy-abi-button", Button)
+        abi_button.disabled = True
+        bytecode_button = self.query_one("#copy-bytecode-button", Button)
+        bytecode_button.disabled = True
+        generate_script_button = self.query_one("#generate-script-button", Button)
+        generate_script_button.disabled = True
 
-            self.abi = None
-            self.bytecode = None
-
+        self.abi = None
+        self.bytecode = None
 
     def action_toggle_files(self) -> None:
         """Called in response to key binding."""

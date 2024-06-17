@@ -1,6 +1,6 @@
 [project]
 name = "sneko"
-version = "0.0.2"
+version = "0.0.3"
 description = "Terminal GUI for Ethereum smart contracts"
 authors = [
     { name = "Marc Garreau", email = "marc@ethereum.org" }
@@ -25,7 +25,9 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-dev-dependencies = []
+dev-dependencies = [
+    "textual-dev"
+]
 
 [tool.hatch.metadata]
 allow-direct-references = true

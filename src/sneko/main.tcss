@@ -54,4 +54,5 @@ Sneko.-show-tree #tree-view {
 
 #generate-script-button {
     margin-top: 1;
+    margin-bottom: 1;
 }
