@@ -22,6 +22,7 @@ attrs==23.2.0
     # via hypothesis
 bitarray==2.9.2
     # via eth-account
+black==24.4.2
 cached-property==1.5.2
     # via py-ecc
     # via py-evm
@@ -35,6 +36,7 @@ ckzg==1.0.2
     # via eth-account
     # via py-evm
 click==8.1.7
+    # via black
     # via textual-dev
 coverage==7.5.3
     # via pytest-cov
@@ -111,12 +113,19 @@ msgpack==1.0.8
 multidict==6.0.5
     # via aiohttp
     # via yarl
+mypy-extensions==1.0.0
+    # via black
 packaging==23.2
+    # via black
     # via py-solc-x
     # via pytest
     # via vyper
 parsimonious==0.10.0
     # via eth-abi
+pathspec==0.12.1
+    # via black
+platformdirs==4.2.2
+    # via black
 pluggy==1.5.0
     # via pytest
 py-ecc==7.0.1

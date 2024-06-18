@@ -32,7 +32,7 @@ solcx.set_solc_version(SOLIDITY_VERSION)
 
 
 class Sneko(App):
-    """Textual code browser app."""
+    """A terminal GUI for Ethereum smart contracts"""
 
     CSS_PATH = "main.tcss"
     BINDINGS = [
@@ -49,10 +49,11 @@ class Sneko(App):
 
     def watch_show_tree(self, show_tree: bool) -> None:
         """Called when show_tree is modified."""
+
         self.set_class(show_tree, "-show-tree")
 
     def compose(self) -> ComposeResult:
-        """Compose our UI."""
+        """Render the UI"""
 
         sneko_contracts_path = os.path.join(os.path.dirname(__file__), "contracts")
         path = sneko_contracts_path if len(sys.argv) < 2 else sys.argv[1]
@@ -97,16 +98,13 @@ class Sneko(App):
                 disabled=True,
             ),
             Static("", id="deploy-address"),
-            Container(id="contract-playground"),
             Static("", id="error-view"),
             id="compilation-panel",
         )
         yield Footer()
 
-    def action_copy_to_clipboard(self) -> None:
-        code_view = self.query_one("#code-view", TextArea)
-        pyperclip.copy(code_view.text)
-        self.notify("Code copied to clipboard")
+    def on_mount(self) -> None:
+        self.query_one(DirectoryTree).focus()
 
     def handle_compile_error(self, e) -> None:
         self.query_one("#error-view", Static).update(str(e))
@@ -122,44 +120,6 @@ class Sneko(App):
 
         self.abi = None
         self.bytecode = None
-
-    def build_contract_playground(self) -> None:
-        abi_value = self.abi
-
-        # build an input and button per function in the ABI
-        abi = json.loads(abi_value)
-        for function in abi:
-            if function["type"] == "function":
-                function_name = function["name"]
-                function_inputs = function["inputs"]
-                function_outputs = function["outputs"]
-                function_state_mutability = function["stateMutability"]
-
-                # build the function signature
-                function_signature = f"{function_name}("
-                for i, input in enumerate(function_inputs):
-                    function_signature += f"{input['type']} {input['name']}"
-                    if i < len(function_inputs) - 1:
-                        function_signature += ", "
-                function_signature += ")"
-
-                # build the function view
-                function_view = Container(
-                    Static(function_signature),
-                    id=f"{function_name}-view",
-                )
-
-                # build the function playground
-                function_playground = Container(
-                    Input(placeholder="args ~"),
-                    Button("Execute", id=f"{function_name}-button", variant="success"),
-                    id=f"{function_name}-playground",
-                )
-
-                # mount the function view and playground
-                container = self.query_one("#contract-playground", Container)
-                container.mount(function_view)
-                container.mount(function_playground)
 
     def handle_compile_success(self):
         abi_value = self.abi
@@ -177,8 +137,6 @@ class Sneko(App):
 
         generate_script_button = self.query_one("#generate-script-button", Button)
         generate_script_button.disabled = False
-
-        # self.build_contract_playground()
 
     def handle_compilation(self) -> None:
         self.query_one("#error-view", Static).update("")
@@ -213,6 +171,8 @@ class Sneko(App):
         self.handle_compile_success()
 
     def generate_script(self) -> None:
+        """Generate a Python script to deploy the contract."""
+
         abi = self.query_one("#abi-view", Input).value
         bytecode = self.query_one("#bytecode-view", Input).value
         code_view = self.query_one("#code-view", TextArea)
@@ -223,9 +183,9 @@ class Sneko(App):
             path = os.path.join(os.path.dirname(__file__), "snippets", "script.py")
             with open(path, "r") as src:
                 content += src.read()
-            with open("output.py", "w") as dest:
+            with open("sneko_tester.py", "w") as dest:
                 dest.write(content)
-            self.notify("Script generated: saved to ./output.py")
+            self.notify("Script generated: saved to ./sneko_tester.py")
         except Exception as e:
             self.notify(f"Error generating script: {e}", severity="error")
 
@@ -247,13 +207,11 @@ class Sneko(App):
         else:
             log("wat")
 
-    def on_mount(self) -> None:
-        self.query_one(DirectoryTree).focus()
-
     def on_directory_tree_file_selected(
         self, event: DirectoryTree.FileSelected
     ) -> None:
-        """Called when the user click a file in the directory tree."""
+        """Called when a file in the directory tree is clicked."""
+
         event.stop()
         code_view = self.query_one("#code-view", TextArea)
         try:
@@ -307,9 +265,15 @@ class Sneko(App):
         self.abi = None
         self.bytecode = None
 
+    # Bindings
+
     def action_toggle_files(self) -> None:
-        """Called in response to key binding."""
         self.show_tree = not self.show_tree
+
+    def action_copy_to_clipboard(self) -> None:
+        code_view = self.query_one("#code-view", TextArea)
+        pyperclip.copy(code_view.text)
+        self.notify("Code copied to clipboard")
 
 
 def main():

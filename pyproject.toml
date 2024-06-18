@@ -1,6 +1,6 @@
 [project]
 name = "sneko"
-version = "0.0.3"
+version = "0.0.4"
 description = "Terminal GUI for Ethereum smart contracts"
 authors = [
     { name = "Marc Garreau", email = "marc@ethereum.org" }
@@ -10,8 +10,6 @@ dependencies = [
     "pyperclip",
     "textual",
     "titanoboa==0.1.10b1",
-    # "titanoboa>=0.1.9",
-    # "titanoboa@git+https://github.com/vyperlang/titanoboa#egg=master",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -26,7 +24,8 @@ build-backend = "hatchling.build"
 [tool.rye]
 managed = true
 dev-dependencies = [
-    "textual-dev"
+    "textual-dev",
+    "black>=24.4.2",
 ]
 
 [tool.hatch.metadata]
