@@ -2,8 +2,11 @@
 
 Terminal GUI for compiling (Solidity and Vyper) smart contracts.
 
+<img width="760" alt="sneko-v0.0.5" src="https://github.com/wolovim/sneko/assets/3621728/c4e567f8-34d1-43dc-b404-94bcbaa6859a">
+
 ## install & usage
 
+- install [pipx](https://pipx.pypa.io/latest/installation/)
 - `pipx install sneko`
 - `sneko` - to view default contracts
 - `sneko <path>` - to display an arbitrary directory
