@@ -2,7 +2,7 @@
 
 Terminal GUI for compiling (Solidity and Vyper) smart contracts.
 
-## install
+## install & usage
 
 - `pipx install sneko`
 - `sneko` - to view default contracts

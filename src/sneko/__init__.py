@@ -4,6 +4,7 @@
 import os
 import json
 import sys
+import toml
 import solcx
 import pyperclip
 import boa
@@ -25,10 +26,13 @@ from textual.widgets import (
     Static,
 )
 
-__version__ = "0.0.3"
 SOLIDITY_VERSION = "0.8.26"
 solcx.install_solc(SOLIDITY_VERSION)
 solcx.set_solc_version(SOLIDITY_VERSION)
+
+with open("pyproject.toml", "r") as file:
+    pyproject_data = toml.load(file)
+    __version__ = pyproject_data["project"]["version"]
 
 
 class Sneko(App):
@@ -183,9 +187,9 @@ class Sneko(App):
             path = os.path.join(os.path.dirname(__file__), "snippets", "script.py")
             with open(path, "r") as src:
                 content += src.read()
-            with open("sneko_tester.py", "w") as dest:
+            with open("output.py", "w") as dest:
                 dest.write(content)
-            self.notify("Script generated: saved to ./sneko_tester.py")
+            self.notify("Script generated: saved to ./output.py")
         except Exception as e:
             self.notify(f"Error generating script: {e}", severity="error")
 
@@ -277,7 +281,31 @@ class Sneko(App):
 
 
 def main():
-    Sneko().run()
+    # ANSI escape codes for bold text
+    BOLD = "\033[1m"
+    RESET = "\033[0m"
+
+    if len(sys.argv) == 1:
+        Sneko().run()
+    elif len(sys.argv) > 2:
+        print("Error: too many arguments. See 'sneko --help' for usage.")
+        sys.exit(1)
+    elif sys.argv[1] in ["version", "-v", "--version"]:
+        print(__version__)
+        sys.exit(0)
+    elif sys.argv[1] in ["help", "-h", "--help"]:
+        print(
+            f"\n{BOLD}Sneko:{RESET} a terminal GUI for Ethereum smart contracts",
+            f"\n\n{BOLD}[Usage]{RESET}\n sneko\n sneko [path]",
+            f"\n\n{BOLD}[Options]{RESET}",
+            "\n  -h, --help    Show this message and exit.",
+            "\n  -v, --version Show the version and exit.",
+            f"\n\n{BOLD}[Args]{RESET}",
+            "\n  path          Path to a directory containing contracts",
+        )
+        sys.exit(0)
+    else:
+        Sneko().run()
 
 
 if __name__ == "__main__":

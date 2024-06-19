@@ -176,6 +176,8 @@ textual==0.63.2
 textual-dev==1.5.1
 titanoboa==0.1.10b1
     # via sneko
+toml==0.10.2
+    # via sneko
 toolz==0.12.1
     # via cytoolz
 trie==3.0.1

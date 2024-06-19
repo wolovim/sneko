@@ -1,6 +1,6 @@
 [project]
 name = "sneko"
-version = "0.0.4"
+version = "0.0.5"
 description = "Terminal GUI for Ethereum smart contracts"
 authors = [
     { name = "Marc Garreau", email = "marc@ethereum.org" }
@@ -10,6 +10,7 @@ dependencies = [
     "pyperclip",
     "textual",
     "titanoboa==0.1.10b1",
+    "toml>=0.10.2",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
