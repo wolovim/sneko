@@ -1,6 +1,3 @@
-# def main() -> int:
-#     print("Hello from sneko!")
-#     return 0
 import os
 import json
 import sys

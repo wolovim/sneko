@@ -28,3 +28,4 @@ Terminal GUI for compiling (Solidity and Vyper) smart contracts.
 - clone repo, then `rye sync`
 - `textual console` in one pane
 - `textual run src/sneko/__init__.py --dev` in another pane
+- if not using textual devtools: `rye run sneko <path>`
