@@ -1,7 +1,6 @@
 import os
 import json
 import sys
-import toml
 import solcx
 import pyperclip
 import vyper
@@ -23,13 +22,10 @@ from textual.widgets import (
     Static,
 )
 
+__version__ = "0.0.8"
 SOLIDITY_VERSION = "0.8.26"
 solcx.install_solc(SOLIDITY_VERSION)
 solcx.set_solc_version(SOLIDITY_VERSION)
-
-with open("pyproject.toml", "r") as file:
-    pyproject_data = toml.load(file)
-    __version__ = pyproject_data["project"]["version"]
 
 
 class Sneko(App):

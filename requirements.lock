@@ -51,8 +51,6 @@ six==1.16.0
     # via asttokens
 textual==0.63.2
     # via sneko
-toml==0.10.2
-    # via sneko
 typing-extensions==4.11.0
     # via textual
 uc-micro-py==1.0.3

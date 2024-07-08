@@ -109,8 +109,6 @@ textual==0.63.2
     # via sneko
     # via textual-dev
 textual-dev==1.5.1
-toml==0.10.2
-    # via sneko
 traitlets==5.14.3
     # via ipython
     # via matplotlib-inline

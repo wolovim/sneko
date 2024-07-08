@@ -1,6 +1,6 @@
 [project]
 name = "sneko"
-version = "0.0.7"
+version = "0.0.8"
 description = "Terminal GUI for Ethereum smart contracts"
 authors = [
     { name = "Marc Garreau", email = "marc@ethereum.org" }
@@ -9,7 +9,6 @@ dependencies = [
     "py-solc-x",
     "pyperclip",
     "textual",
-    "toml>=0.10.2",
     "vyper==0.3.10",
 ]
 readme = "README.md"
