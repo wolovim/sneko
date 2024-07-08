@@ -4,7 +4,7 @@ import sys
 import toml
 import solcx
 import pyperclip
-import boa
+import vyper
 
 from pathlib import Path
 from rich.syntax import Syntax
@@ -159,9 +159,9 @@ class Sneko(App):
                 self.bytecode = json.dumps(contract_interface["bin"])
             # VYPER:
             elif file_extension == ".vy":
-                contract = boa.loads(code)
-                self.abi = json.dumps(contract.abi)
-                self.bytecode = f'"{contract.compiler_data.bytecode.hex()}"'
+                contract = vyper.compile_code(code, output_formats=["abi", "bytecode"])
+                self.abi = json.dumps(contract["abi"])
+                self.bytecode = f'"{contract["bytecode"]}"'
             # WAT?
             else:
                 raise Exception("Unsupported file extension")
@@ -238,8 +238,7 @@ class Sneko(App):
                 compiler_input.value = f"solidity {SOLIDITY_VERSION}"
             elif file_extension == ".vy":
                 compiler_input = self.query_one("#compiler-version", Input)
-                vyper_version = boa.contracts.vyper.vyper_contract.vyper.version.version
-                compiler_input.value = f"vyper {vyper_version}"
+                compiler_input.value = f"vyper {vyper.version.version}"
             else:
                 compiler_input = self.query_one("#compiler-version", Input)
                 compiler_input.value = "wat? only vyper and solidity supported"

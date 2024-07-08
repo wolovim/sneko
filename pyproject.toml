@@ -1,6 +1,6 @@
 [project]
 name = "sneko"
-version = "0.0.6"
+version = "0.0.7"
 description = "Terminal GUI for Ethereum smart contracts"
 authors = [
     { name = "Marc Garreau", email = "marc@ethereum.org" }
@@ -9,11 +9,11 @@ dependencies = [
     "py-solc-x",
     "pyperclip",
     "textual",
-    "titanoboa==0.1.10b1",
     "toml>=0.10.2",
+    "vyper==0.3.10",
 ]
 readme = "README.md"
-requires-python = ">= 3.8"
+requires-python = ">= 3.9"
 
 [project.scripts]
 "sneko" = "sneko:main"
@@ -27,6 +27,8 @@ managed = true
 dev-dependencies = [
     "textual-dev",
     "black>=24.4.2",
+    "ipython>=8.26.0",
+    "pdbpp>=0.10.3",
 ]
 
 [tool.hatch.metadata]
