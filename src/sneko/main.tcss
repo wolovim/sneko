@@ -20,6 +20,13 @@ Sneko.-show-tree #tree-view {
 }
 
 
+#collapsible-editor {
+    width: 1fr;
+    max-height: 55vh;
+    layout: vertical;
+    overflow: hidden hidden;
+}
+
 #code-view {
     overflow: auto scroll;
     min-width: 100%;

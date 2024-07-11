@@ -14,6 +14,7 @@ from textual.containers import Container, Horizontal
 from textual.reactive import var
 from textual.widgets import (
     Button,
+    Collapsible,
     DirectoryTree,
     Footer,
     Header,
@@ -57,11 +58,12 @@ class Sneko(App):
 
         yield Header()
         # TODO: collapsible code view
-        yield Container(
-            DirectoryTree(path, id="tree-view"),
-            TextArea.code_editor(text="", id="code-view"),
-            id="editor",
-        )
+        with Collapsible(title="Collapse Editor", collapsed=False, id="collapsible-editor"):
+            yield Container(
+                DirectoryTree(path, id="tree-view"),
+                TextArea.code_editor(text="", id="code-view"),
+                id="editor",
+            )
         yield Container(
             Horizontal(
                 Button(
