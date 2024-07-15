@@ -12,25 +12,86 @@
 -e file:.
 aiohttp==3.9.5
     # via textual-dev
+    # via web3
 aiosignal==1.3.1
     # via aiohttp
+annotated-types==0.7.0
+    # via pydantic
 asttokens==2.4.1
     # via stack-data
     # via vyper
+async-timeout==4.0.3
+    # via aiohttp
 attrs==23.2.0
     # via aiohttp
     # via wmctrl
+bitarray==2.9.2
+    # via eth-account
 black==24.4.2
+cached-property==1.5.2
+    # via py-ecc
+    # via py-evm
 cbor2==5.6.4
     # via vyper
 certifi==2024.2.2
     # via requests
 charset-normalizer==3.3.2
     # via requests
+ckzg==1.0.2
+    # via eth-account
+    # via py-evm
 click==8.1.7
     # via black
     # via textual-dev
+cytoolz==0.12.3
+    # via eth-utils
 decorator==5.1.1
+    # via ipython
+eth-abi==5.1.0
+    # via eth-account
+    # via eth-tester
+    # via web3
+eth-account==0.13.0
+    # via eth-tester
+    # via web3
+eth-bloom==3.0.1
+    # via py-evm
+eth-hash==0.7.0
+    # via eth-bloom
+    # via eth-utils
+    # via trie
+    # via web3
+eth-keyfile==0.8.1
+    # via eth-account
+eth-keys==0.5.1
+    # via eth-account
+    # via eth-keyfile
+    # via eth-tester
+    # via py-evm
+eth-rlp==2.1.0
+    # via eth-account
+eth-tester==0.12.0b1
+    # via sneko
+eth-typing==4.4.0
+    # via eth-abi
+    # via eth-keys
+    # via eth-utils
+    # via py-ecc
+    # via py-evm
+    # via web3
+eth-utils==4.1.1
+    # via eth-abi
+    # via eth-account
+    # via eth-keyfile
+    # via eth-keys
+    # via eth-rlp
+    # via eth-tester
+    # via py-ecc
+    # via py-evm
+    # via rlp
+    # via trie
+    # via web3
+exceptiongroup==1.2.1
     # via ipython
 executing==2.0.1
     # via stack-data
@@ -39,6 +100,11 @@ fancycompleter==0.9.1
 frozenlist==1.4.1
     # via aiohttp
     # via aiosignal
+hexbytes==1.2.1
+    # via eth-account
+    # via eth-rlp
+    # via trie
+    # via web3
 idna==3.7
     # via requests
     # via yarl
@@ -49,6 +115,8 @@ jedi==0.19.1
     # via ipython
 linkify-it-py==2.0.3
     # via markdown-it-py
+lru-dict==1.3.0
+    # via py-evm
 markdown-it-py==3.0.0
     # via mdit-py-plugins
     # via rich
@@ -70,6 +138,8 @@ packaging==23.2
     # via black
     # via py-solc-x
     # via vyper
+parsimonious==0.10.0
+    # via eth-abi
 parso==0.8.4
     # via jedi
 pathspec==0.12.1
@@ -85,10 +155,21 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
+py-ecc==7.0.1
+    # via py-evm
+py-evm==0.10.1b1
+    # via sneko
 py-solc-x==2.0.3
     # via sneko
 pycryptodome==3.20.0
+    # via eth-hash
+    # via eth-keyfile
     # via vyper
+pydantic==2.8.2
+    # via eth-account
+    # via web3
+pydantic-core==2.20.1
+    # via pydantic
 pygments==2.18.0
     # via ipython
     # via pdbpp
@@ -97,24 +178,52 @@ pyperclip==1.8.2
     # via sneko
 pyrepl==0.9.0
     # via fancycompleter
+pyunormalize==15.1.0
+    # via web3
+regex==2024.5.15
+    # via parsimonious
 requests==2.32.2
     # via py-solc-x
+    # via web3
 rich==13.7.1
     # via textual
+rlp==4.0.1
+    # via eth-account
+    # via eth-rlp
+    # via eth-tester
+    # via py-evm
+    # via trie
+semantic-version==2.10.0
+    # via eth-tester
 six==1.16.0
     # via asttokens
+sortedcontainers==2.4.0
+    # via trie
 stack-data==0.6.3
     # via ipython
 textual==0.63.2
     # via sneko
     # via textual-dev
 textual-dev==1.5.1
+tomli==2.0.1
+    # via black
+toolz==0.12.1
+    # via cytoolz
 traitlets==5.14.3
     # via ipython
     # via matplotlib-inline
+trie==3.0.1
+    # via py-evm
 typing-extensions==4.11.0
+    # via black
+    # via eth-rlp
+    # via eth-typing
+    # via ipython
+    # via pydantic
+    # via pydantic-core
     # via textual
     # via textual-dev
+    # via web3
 uc-micro-py==1.0.3
     # via linkify-it-py
 urllib3==2.2.1
@@ -123,6 +232,10 @@ vyper==0.4.0
     # via sneko
 wcwidth==0.2.13
     # via prompt-toolkit
+web3==7.0.0b7
+    # via sneko
+websockets==12.0
+    # via web3
 wheel==0.43.0
     # via vyper
 wmctrl==0.5

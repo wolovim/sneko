@@ -10,6 +10,9 @@ dependencies = [
     "pyperclip",
     "textual",
     "vyper==0.4.0",
+    "web3==7.0.0b7",
+    "eth-tester>=0.12.0b1",
+    "py-evm>=0.10.1b1",
 ]
 readme = "README.md"
 requires-python = ">= 3.10"
