@@ -19,7 +19,6 @@ Sneko.-show-tree #tree-view {
     max-width: 50%;
 }
 
-
 #collapsible-editor {
     width: 1fr;
     max-height: 55vh;

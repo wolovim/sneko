@@ -21,9 +21,12 @@ from textual.widgets import (
     Footer,
     Header,
     Input,
-    TextArea,
     Static,
+    TabbedContent,
+    TabPane,
+    TextArea,
 )
+from web3 import Web3, EthereumTesterProvider
 
 # from textual.logging import TextualHandler
 #
@@ -61,6 +64,8 @@ class Sneko(App):
     show_tree = var(True)
     abi = None
     bytecode = None
+    w3 = None
+    contract = None
 
     def watch_show_tree(self, show_tree: bool) -> None:
         """Called when show_tree is modified."""
@@ -74,52 +79,60 @@ class Sneko(App):
         path = sneko_contracts_path if len(sys.argv) < 2 else sys.argv[1]
 
         yield Header()
-        # TODO: collapsible code view
         with Collapsible(title="Collapse Editor", collapsed=False, id="collapsible-editor"):
             yield Container(
                 DirectoryTree(path, id="tree-view"),
                 TextArea.code_editor(text="", id="code-view"),
                 id="editor",
             )
-        yield Container(
-            Horizontal(
-                Button(
-                    "Compile", id="compile-button", variant="primary", disabled=True
-                ),
-                Input(
-                    placeholder="Compiler version ~",
-                    id="compiler-version",
-                    disabled=True,
-                ),
-                id="compile-grouping",
-            ),
-            Horizontal(
-                Button("Copy ABI", id="copy-abi-button", disabled=True),
-                Input(placeholder="ABI ~", id="abi-view", disabled=True),
-                id="input-abi",
-            ),
-            Horizontal(
-                Button("Copy Bytecode", id="copy-bytecode-button", disabled=True),
-                Input(
-                    placeholder="Deployment bytecode ~",
-                    id="bytecode-view",
-                    disabled=True,
-                ),
-                id="input-bytecode",
-            ),
-            Button(
-                "Generate Script",
-                id="generate-script-button",
-                variant="success",
-                disabled=True,
-            ),
-            Static("", id="deploy-address"),
-            Static("", id="error-view"),
-            id="compilation-panel",
-        )
+        with TabbedContent():
+            with TabPane("Compile"):
+                yield Container(
+                    Horizontal(
+                        Button(
+                            "Compile", id="compile-button", variant="primary", disabled=True
+                        ),
+                        Input(
+                            placeholder="Compiler version ~",
+                            id="compiler-version",
+                            disabled=True,
+                        ),
+                        id="compile-grouping",
+                    ),
+                    Horizontal(
+                        Button("Copy ABI", id="copy-abi-button", disabled=True),
+                        Input(placeholder="ABI ~", id="abi-view", disabled=True),
+                        id="input-abi",
+                    ),
+                    Horizontal(
+                        Button("Copy Bytecode", id="copy-bytecode-button", disabled=True),
+                        Input(
+                            placeholder="Deployment bytecode ~",
+                            id="bytecode-view",
+                            disabled=True,
+                        ),
+                        id="input-bytecode",
+                    ),
+                    Button(
+                        "Generate Script",
+                        id="generate-script-button",
+                        variant="success",
+                        disabled=True,
+                    ),
+                    Static("", id="error-view"),
+                    id="compilation-panel",
+                )
+            with TabPane("Playground"):
+                yield Container(
+                    Input(placeholder="Constructor args (comma separated)", id="constructor-args"),
+                    Button("Deploy", id="deploy-button", variant="success"),
+                    Static("", id="deploy-address"),
+                    id="playground-panel",
+                )
         yield Footer()
 
     def on_mount(self) -> None:
+        self.w3 = Web3(EthereumTesterProvider())
         self.query_one(DirectoryTree).focus()
 
     def handle_compile_error(self, e) -> None:
@@ -159,7 +172,10 @@ class Sneko(App):
         generate_script_button = self.query_one("#generate-script-button", Button)
         generate_script_button.disabled = False
 
+        self.clear_deployed_contract()
+
     def handle_compilation(self) -> None:
+        self.contract = None
         self.query_one("#error-view", Static).update("")
         code_view = self.query_one("#code-view", TextArea)
         code = code_view.text
@@ -218,6 +234,81 @@ class Sneko(App):
         except Exception as e:
             self.notify(f"Error generating script: {e}", severity="error")
 
+    def clear_deployed_contract(self) -> None:
+        buttons_to_unmount = [
+            b for b in self.query("Button") if b.id and b.id.startswith("fn-button-")
+        ]
+        for button in buttons_to_unmount:
+            button.remove()
+        address_display = self.query_one("#deploy-address", Static)
+        address_display.update("")
+
+    def convert_strings_to_types(self, values, input_types):
+        typed_values = values.copy()
+
+        for i, arg in enumerate(values):
+            if "int" in input_types[i]["type"]:
+                typed_values[i] = int(arg)
+            # TODO: handle remaining types
+
+        return typed_values
+        
+    def deploy_contract(self) -> None:
+        """Deploy the contract to the Ethereum network."""
+
+        if not self.abi or not self.bytecode:
+            self.notify("Compile the contract first", severity="error")
+            return
+
+        self.clear_deployed_contract()
+
+        w3 = self.w3
+        bytecode = self.query_one("#bytecode-view", Input).value
+        abi = self.query_one("#abi-view", Input).value
+        bytecode = json.loads(bytecode)
+        abi = json.loads(abi)
+        
+        try:
+            contract = w3.eth.contract(abi=abi, bytecode=bytecode)
+            input_types = contract.abi[0]["inputs"]
+            constructor_arg_input = self.query_one("#constructor-args", Input).value
+
+            if constructor_arg_input == "":
+                tx_hash = contract.constructor().transact()
+            else:
+                constructor_args = [a.strip() for a in constructor_arg_input.split(",")]
+                log(constructor_args)
+                typed_args = self.convert_strings_to_types(constructor_args, input_types)
+                tx_hash = contract.constructor(*typed_args).transact()
+            self.notify(f"Transaction hash: {tx_hash.hex()}")
+            tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+            self.notify(f"Contract address: {tx_receipt.contractAddress}")
+
+            address_display = self.query_one("#deploy-address", Static)
+            address_display.update(f"Contract address: {tx_receipt.contractAddress}")
+            
+            deployed_contract = w3.eth.contract(address=tx_receipt.contractAddress, abi=abi)
+
+            funcs = deployed_contract.all_functions()
+            log(funcs)
+            for func in funcs:
+                log(func.fn_name)
+                b = Button(func.fn_name, id=f"fn-button-{func.fn_name}")
+                # i = Input(placeholder=f"{}")
+                self.query_one("#playground-panel").mount(b)
+                self.contract = deployed_contract
+
+        except Exception as e:
+            self.notify(f"Error deploying contract: {e}", severity="error")
+
+
+    def handle_contract_fn_button(self, button_id: str) -> None:
+        """Handle a button click for a contract function."""
+            
+        button_id = button_id.replace("fn-button-", "")
+        response = self.contract.functions[button_id]().call()
+        self.notify(f"Function response: {response}")
+        
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Called when any button is clicked."""
 
@@ -233,8 +324,12 @@ class Sneko(App):
             self.notify("Bytecode copied to clipboard")
         elif event.button.id == "generate-script-button":
             self.generate_script()
+        elif event.button.id == "deploy-button":
+            self.deploy_contract()
+        elif event.button.id.startswith("fn-button-"):
+            self.handle_contract_fn_button(event.button.id)
         else:
-            log("wat")
+            log("unhandled button press event ~")
 
     def on_directory_tree_file_selected(
         self, event: DirectoryTree.FileSelected
