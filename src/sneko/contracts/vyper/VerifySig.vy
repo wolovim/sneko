@@ -1,6 +1,5 @@
 # https://vyper-by-example.org/verify-signature/
-# @version ^0.3.9
-
+# @version ^0.4.0
 
 # hash = getHash("Hello Vyper!")
 # 0x5436c86f18e3d25a10e557ae125450118dd0a481ca22112b1977d55a676e4c91
@@ -8,7 +7,6 @@
 @pure
 def getHash(_str: String[100]) -> bytes32:
     return keccak256(_str)
-
 
 # getEthSignedHash(hash)
 # 0x045b623a8e8fb7b4fcfbd1ae07e7326d55303d7de4085c69b346bd130c1936da
@@ -22,7 +20,6 @@ def getEthSignedHash(_hash: bytes32) -> bytes32:
         )
     )
 
-
 # account = your account
 # hash = getHash("Hello Vyper!")
 # signature = await ethereum.request({ method: "personal_sign", params: [account, hash]})
@@ -33,7 +30,6 @@ def recoverSigner(ethSignedHash: bytes32, sig: Bytes[65]) -> address:
     s: uint256 = convert(slice(sig, 32, 32), uint256)
     v: uint256 = convert(slice(sig, 64, 1), uint256)
     return ecrecover(ethSignedHash, v, r, s)
-
 
 @external
 @pure

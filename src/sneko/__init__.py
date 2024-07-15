@@ -23,7 +23,7 @@ from textual.widgets import (
     Static,
 )
 
-__version__ = "0.0.8"
+__version__ = "0.0.9"
 SOLIDITY_VERSION = "0.8.26"
 solcx.install_solc(SOLIDITY_VERSION)
 solcx.set_solc_version(SOLIDITY_VERSION)

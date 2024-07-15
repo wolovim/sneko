@@ -57,7 +57,7 @@ uc-micro-py==1.0.3
     # via linkify-it-py
 urllib3==2.2.1
     # via requests
-vyper==0.3.10
+vyper==0.4.0
     # via sneko
 wheel==0.43.0
     # via vyper
