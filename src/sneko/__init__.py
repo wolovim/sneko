@@ -1,8 +1,9 @@
-import os
 import json
-import sys
-import solcx
+import os
 import pyperclip
+import solcx
+import subprocess
+import sys
 import vyper
 
 from pathlib import Path
@@ -23,7 +24,7 @@ from textual.widgets import (
     Static,
 )
 
-__version__ = "0.0.9"
+__version__ = "0.0.10"
 SOLIDITY_VERSION = "0.8.26"
 solcx.install_solc(SOLIDITY_VERSION)
 solcx.set_solc_version(SOLIDITY_VERSION)
@@ -157,9 +158,15 @@ class Sneko(App):
                 self.bytecode = json.dumps(contract_interface["bin"])
             # VYPER:
             elif file_extension == ".vy":
-                contract = vyper.compile_code(code, output_formats=["abi", "bytecode"])
-                self.abi = json.dumps(contract["abi"])
-                self.bytecode = f'"{contract["bytecode"]}"'
+                contract_path = Path(self.sub_title)
+                contract = subprocess.run(
+                    ['vyper', contract_path, '-f', 'abi,bytecode'],
+                    capture_output=True,
+                    text=True
+                )
+                contract_artifacts = contract.stdout.split('\n')
+                self.abi = json.dumps(contract_artifacts[0])
+                self.bytecode = f'"{contract_artifacts[1]}"'
             # WAT?
             else:
                 raise Exception("Unsupported file extension")
@@ -174,9 +181,7 @@ class Sneko(App):
 
         abi = self.query_one("#abi-view", Input).value
         bytecode = self.query_one("#bytecode-view", Input).value
-        code_view = self.query_one("#code-view", TextArea)
-        code = code_view.text
-        content = f'CODE="""{code}"""\nABI={abi}\nBYTECODE={bytecode}\n\n'
+        content = f'ABI={abi}\nBYTECODE={bytecode}\n\n'
 
         try:
             path = os.path.join(os.path.dirname(__file__), "snippets", "script.py")
