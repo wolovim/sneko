@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import pyperclip
 import solcx
@@ -24,7 +25,22 @@ from textual.widgets import (
     Static,
 )
 
-__version__ = "0.0.12"
+# from textual.logging import TextualHandler
+#
+# logging.basicConfig(
+#     level="DEBUG",
+#     handlers=[
+#        TextualHandler(),
+#        logging.StreamHandler(),
+#        logging.FileHandler("sneko.log")
+#     ],
+# )
+
+# ANSI escape codes for bold text
+BOLD = "\033[1m"
+RESET = "\033[0m"
+
+__version__ = "0.0.13"
 SOLIDITY_VERSION = "0.8.26"
 solcx.install_solc(SOLIDITY_VERSION)
 solcx.set_solc_version(SOLIDITY_VERSION)
@@ -107,7 +123,12 @@ class Sneko(App):
         self.query_one(DirectoryTree).focus()
 
     def handle_compile_error(self, e) -> None:
-        self.query_one("#error-view", Static).update(str(e))
+        if "vyper: command not found" in str(e):
+            error_msg = f"{BOLD}A local installation of Vyper is required to compile Vyper contracts.{RESET}\n"
+            error_msg += f"\n{str(e)}"
+            self.query_one("#error-view", Static).update(error_msg)
+        else:
+            self.query_one("#error-view", Static).update(str(e))
         self.query_one("#abi-view", Input).value = "oop!"
         self.query_one("#bytecode-view", Input).value = "oop!"
 
@@ -164,9 +185,13 @@ class Sneko(App):
                     capture_output=True,
                     text=True
                 )
-                contract_artifacts = contract.stdout.split('\n')
-                self.abi = json.dumps(contract_artifacts[0])
-                self.bytecode = f'"{contract_artifacts[1]}"'
+                if contract.stderr:
+                    self.handle_compile_error(contract.stderr)
+                    return
+                else:
+                    contract_artifacts = contract.stdout.split('\n')
+                    self.abi = json.dumps(contract_artifacts[0])
+                    self.bytecode = f'"{contract_artifacts[1]}"'
             # WAT?
             else:
                 raise Exception("Unsupported file extension")
@@ -274,10 +299,6 @@ class Sneko(App):
 
 
 def main():
-    # ANSI escape codes for bold text
-    BOLD = "\033[1m"
-    RESET = "\033[0m"
-
     if len(sys.argv) == 1:
         Sneko().run()
     elif len(sys.argv) > 2:
