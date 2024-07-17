@@ -24,7 +24,7 @@ from textual.widgets import (
     Static,
 )
 
-__version__ = "0.0.10"
+__version__ = "0.0.11"
 SOLIDITY_VERSION = "0.8.26"
 solcx.install_solc(SOLIDITY_VERSION)
 solcx.set_solc_version(SOLIDITY_VERSION)
@@ -160,7 +160,7 @@ class Sneko(App):
             elif file_extension == ".vy":
                 contract_path = Path(self.sub_title)
                 contract = subprocess.run(
-                    ['vyper', contract_path, '-f', 'abi,bytecode'],
+                    ['vyper', contract_path.resolve(), '-f', 'abi,bytecode'],
                     capture_output=True,
                     text=True
                 )
@@ -219,13 +219,7 @@ class Sneko(App):
         event.stop()
         code_view = self.query_one("#code-view", TextArea)
         try:
-            syntax = Syntax.from_path(
-                str(event.path),
-                line_numbers=True,
-                word_wrap=False,
-                indent_guides=True,
-                theme="github-dark",
-            )
+            syntax = Syntax.from_path(str(event.path))
         except Exception as e:
             code_view.load_text(str(e))
             self.sub_title = "ERROR"
