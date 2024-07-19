@@ -243,10 +243,11 @@ class Sneko(App):
         address_display = self.query_one("#deploy-address", Static)
         address_display.update("")
 
-    def convert_strings_to_types(self, values, input_types):
-        typed_values = values.copy()
+    def convert_string_to_typed_data(self, values, input_types):
+        values_list = [a.strip() for a in values.split(",")]
+        typed_values = values_list.copy()
 
-        for i, arg in enumerate(values):
+        for i, arg in enumerate(values_list):
             if "int" in input_types[i]["type"]:
                 typed_values[i] = int(arg)
             # TODO: handle remaining types
@@ -276,9 +277,7 @@ class Sneko(App):
             if constructor_arg_input == "":
                 tx_hash = contract.constructor().transact()
             else:
-                constructor_args = [a.strip() for a in constructor_arg_input.split(",")]
-                log(constructor_args)
-                typed_args = self.convert_strings_to_types(constructor_args, input_types)
+                typed_args = self.convert_string_to_typed_data(constructor_arg_input, input_types)
                 tx_hash = contract.constructor(*typed_args).transact()
             self.notify(f"Transaction hash: {tx_hash.hex()}")
             tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -290,24 +289,63 @@ class Sneko(App):
             deployed_contract = w3.eth.contract(address=tx_receipt.contractAddress, abi=abi)
 
             funcs = deployed_contract.all_functions()
-            log(funcs)
             for func in funcs:
-                log(func.fn_name)
                 b = Button(func.fn_name, id=f"fn-button-{func.fn_name}")
-                # i = Input(placeholder=f"{}")
-                self.query_one("#playground-panel").mount(b)
+                playground = self.query_one("#playground-panel")
+                playground.mount(b)
+                func_inputs = func.abi["inputs"]
+                if func_inputs:
+                    i = Input(placeholder="comma separated args ~", id=f"fn-input-{func.fn_name}")
+                    playground.mount(i)
                 self.contract = deployed_contract
 
         except Exception as e:
             self.notify(f"Error deploying contract: {e}", severity="error")
 
 
+    def get_contract_fn_abi(self, name):
+        """Given a fn name, return the relevant ABI info"""
+
+        for declaration in self.contract.abi:
+            if declaration.get("name") == name:
+                return declaration
+        return None
+            
     def handle_contract_fn_button(self, button_id: str) -> None:
         """Handle a button click for a contract function."""
             
         button_id = button_id.replace("fn-button-", "")
-        response = self.contract.functions[button_id]().call()
-        self.notify(f"Function response: {response}")
+
+        # determine if call or transact:
+        fn_abi = self.get_contract_fn_abi(button_id)
+        is_tx = fn_abi["stateMutability"] in ["nonpayable", "payable"]
+        
+        try:
+            input_value = self.query_one(f"#fn-input-{button_id}").value
+        except:
+            input_value = None
+            
+        if input_value:
+            try:
+                converted_input = self.convert_string_to_typed_data(input_value, fn_abi["inputs"])
+                if is_tx:
+                    tx_hash = self.contract.functions[button_id](*converted_input).transact()
+                    self.notify(f"Tx hash: {tx_hash.hex()}")
+                else:
+                    response = self.contract.functions[button_id](*converted_input).call()
+                    self.notify(f"Function response: {response}")
+            except Exception as e:
+                self.notify(f"Error calling function: {e}", severity="error")
+        else:
+            try:
+                if is_tx:
+                    tx_hash = self.contract.functions[button_id]().transact()
+                    self.notify(f"Tx hash: {tx_hash.hex()}")
+                else:
+                    response = self.contract.functions[button_id]().call()
+                    self.notify(f"Function response: {response}")
+            except Exception as e:
+                self.notify(f"Error calling function: {e}", severity="error")
         
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Called when any button is clicked."""
