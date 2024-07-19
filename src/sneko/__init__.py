@@ -130,6 +130,7 @@ class Sneko(App):
                         Input(placeholder="Constructor args (comma separated)", id="constructor-args"),
                         id="deploy-horizontal",
                     ),
+                    Container(id="playground-fn-body"),
                     id="playground-panel",
                 )
         yield Footer()
@@ -158,7 +159,7 @@ class Sneko(App):
         self.abi = None
         self.bytecode = None
 
-    def handle_compile_success(self):
+    async def handle_compile_success(self):
         abi_value = self.abi
         bytecode_value = self.bytecode
 
@@ -176,9 +177,9 @@ class Sneko(App):
         generate_script_button.disabled = False
 
         self.query_one("#constructor-args", Input).value = ""
-        self.clear_deployed_contract()
+        await self.clear_deployed_contract()
 
-    def handle_compilation(self) -> None:
+    async def handle_compilation(self) -> None:
         self.contract = None
         self.query_one("#error-view", Static).update("")
         code_view = self.query_one("#code-view", TextArea)
@@ -219,7 +220,7 @@ class Sneko(App):
             self.handle_compile_error(e)
             return
 
-        self.handle_compile_success()
+        await self.handle_compile_success()
 
     def generate_script(self) -> None:
         """Generate a Python script to deploy the contract."""
@@ -238,26 +239,11 @@ class Sneko(App):
         except Exception as e:
             self.notify(f"Error generating script: {e}", severity="error")
 
-    def clear_deployed_contract(self) -> None:
+    async def clear_deployed_contract(self) -> None:
         """Unmount deployed contract buttons and inputs."""
 
-        horiz_to_unmount = [
-            h for h in self.query("Horizontal") if h.id and h.id.startswith("fn-group-")
-        ]
-        for h in horiz_to_unmount:
-            log("removing horiz:")
-            log(dir(h))
-            h.remove()
-        # buttons_to_unmount = [
-        #     b for b in self.query("Button") if b.id and b.id.startswith("fn-button-")
-        # ]
-        # for button in buttons_to_unmount:
-        #     button.remove()
-        # inputs_to_unmount = [
-        #     i for i in self.query("Input") if i.id and i.id.startswith("fn-input-")
-        # ]
-        # for input in inputs_to_unmount:
-        #     input.remove()
+        container = self.query_one("#playground-fn-body", Container)
+        await container.remove_children()
         address_display = self.query_one("#deploy-address", Static)
         address_display.update("")
 
@@ -274,14 +260,14 @@ class Sneko(App):
 
         return typed_values
         
-    def deploy_contract(self) -> None:
+    async def deploy_contract(self) -> None:
         """Deploy the contract to the Ethereum network."""
 
         if not self.abi or not self.bytecode:
             self.notify("Compile the contract first", severity="error")
             return
 
-        self.clear_deployed_contract()
+        await self.clear_deployed_contract()
 
         w3 = self.w3
         bytecode = self.query_one("#bytecode-view", Input).value
@@ -311,7 +297,7 @@ class Sneko(App):
             fns = deployed_contract.all_functions()
             for fn in fns:
                 b = Button(fn.fn_name, id=f"fn-button-{fn.fn_name}", classes="fn-button")
-                playground = self.query_one("#playground-panel")
+                playground = self.query_one("#playground-fn-body", Container)
                 fn_inputs = fn.abi["inputs"]
                 if fn_inputs:
                     i = Input(placeholder="comma separated args ~", id=f"fn-input-{fn.fn_name}", classes="fn-input")
@@ -369,11 +355,11 @@ class Sneko(App):
             except Exception as e:
                 self.notify(f"Error calling function: {e}", severity="error")
         
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
         """Called when any button is clicked."""
 
         if event.button.id == "compile-button":
-            self.handle_compilation()
+            await self.handle_compilation()
         elif event.button.id == "copy-abi-button":
             input = self.query_one("#abi-view", Input)
             pyperclip.copy(input.value)
@@ -385,7 +371,7 @@ class Sneko(App):
         elif event.button.id == "generate-script-button":
             self.generate_script()
         elif event.button.id == "deploy-button":
-            self.deploy_contract()
+            await self.deploy_contract()
         elif event.button.id.startswith("fn-button-"):
             self.handle_contract_fn_button(event.button.id)
         else:
