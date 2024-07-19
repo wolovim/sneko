@@ -36,7 +36,7 @@ Sneko.-show-tree #tree-view {
 }
 
 #compilation-panel {
-    margin: 1 0 0 1;
+    height: auto;
 }
 
 #compile-grouping {
@@ -61,4 +61,32 @@ Sneko.-show-tree #tree-view {
 #generate-script-button {
     margin-top: 1;
     margin-bottom: 1;
+}
+
+#playground-panel {
+    height: auto;
+}
+
+#deploy-horizontal {
+    height: auto;
+}
+
+#deploy-button {
+    height: auto;
+}
+
+#constructor-args {
+    height: auto;
+}
+
+.fn-group {
+    height: auto;
+}
+
+.fn-button {
+    height: auto;
+}
+
+.fn-input {
+    height: auto;
 }
