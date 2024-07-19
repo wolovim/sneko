@@ -86,7 +86,7 @@ class Sneko(App):
                 id="editor",
             )
         with TabbedContent():
-            with TabPane("Compile"):
+            with TabPane("Compile", id="compile-tab"):
                 yield Container(
                     Horizontal(
                         Button(
@@ -122,7 +122,7 @@ class Sneko(App):
                     Static("", id="error-view"),
                     id="compilation-panel",
                 )
-            with TabPane("Playground"):
+            with TabPane("Playground", id="playground-tab"):
                 yield Container(
                     Static("", id="deploy-address"),
                     Horizontal(
@@ -409,6 +409,7 @@ class Sneko(App):
             compile_button = self.query_one("#compile-button", Button)
             compile_button.disabled = False
             self.reset_inputs()
+            self.query_one(TabbedContent).active = "compile-tab"
 
     def reset_inputs(self) -> None:
         # Clear inputs
