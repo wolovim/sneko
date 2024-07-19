@@ -155,7 +155,7 @@ six==1.16.0
     # via asttokens
 sortedcontainers==2.4.0
     # via trie
-textual==0.63.2
+textual==0.73.0
     # via sneko
 toolz==0.12.1
     # via cytoolz

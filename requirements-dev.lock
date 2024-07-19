@@ -201,7 +201,7 @@ sortedcontainers==2.4.0
     # via trie
 stack-data==0.6.3
     # via ipython
-textual==0.63.2
+textual==0.73.0
     # via sneko
     # via textual-dev
 textual-dev==1.5.1
