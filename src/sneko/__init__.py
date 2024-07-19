@@ -124,9 +124,12 @@ class Sneko(App):
                 )
             with TabPane("Playground"):
                 yield Container(
-                    Input(placeholder="Constructor args (comma separated)", id="constructor-args"),
-                    Button("Deploy", id="deploy-button", variant="success"),
                     Static("", id="deploy-address"),
+                    Horizontal(
+                        Button("Deploy", id="deploy-button", variant="success"),
+                        Input(placeholder="Constructor args (comma separated)", id="constructor-args"),
+                        id="deploy-horizontal",
+                    ),
                     id="playground-panel",
                 )
         yield Footer()
@@ -172,6 +175,7 @@ class Sneko(App):
         generate_script_button = self.query_one("#generate-script-button", Button)
         generate_script_button.disabled = False
 
+        self.query_one("#constructor-args", Input).value = ""
         self.clear_deployed_contract()
 
     def handle_compilation(self) -> None:
@@ -235,15 +239,31 @@ class Sneko(App):
             self.notify(f"Error generating script: {e}", severity="error")
 
     def clear_deployed_contract(self) -> None:
-        buttons_to_unmount = [
-            b for b in self.query("Button") if b.id and b.id.startswith("fn-button-")
+        """Unmount deployed contract buttons and inputs."""
+
+        horiz_to_unmount = [
+            h for h in self.query("Horizontal") if h.id and h.id.startswith("fn-group-")
         ]
-        for button in buttons_to_unmount:
-            button.remove()
+        for h in horiz_to_unmount:
+            log("removing horiz:")
+            log(dir(h))
+            h.remove()
+        # buttons_to_unmount = [
+        #     b for b in self.query("Button") if b.id and b.id.startswith("fn-button-")
+        # ]
+        # for button in buttons_to_unmount:
+        #     button.remove()
+        # inputs_to_unmount = [
+        #     i for i in self.query("Input") if i.id and i.id.startswith("fn-input-")
+        # ]
+        # for input in inputs_to_unmount:
+        #     input.remove()
         address_display = self.query_one("#deploy-address", Static)
         address_display.update("")
 
     def convert_string_to_typed_data(self, values, input_types):
+        """Given a comma separated string of values, convert to typed data."""
+
         values_list = [a.strip() for a in values.split(",")]
         typed_values = values_list.copy()
 
@@ -288,17 +308,19 @@ class Sneko(App):
             
             deployed_contract = w3.eth.contract(address=tx_receipt.contractAddress, abi=abi)
 
-            funcs = deployed_contract.all_functions()
-            for func in funcs:
-                b = Button(func.fn_name, id=f"fn-button-{func.fn_name}")
+            fns = deployed_contract.all_functions()
+            for fn in fns:
+                b = Button(fn.fn_name, id=f"fn-button-{fn.fn_name}", classes="fn-button")
                 playground = self.query_one("#playground-panel")
-                playground.mount(b)
-                func_inputs = func.abi["inputs"]
-                if func_inputs:
-                    i = Input(placeholder="comma separated args ~", id=f"fn-input-{func.fn_name}")
-                    playground.mount(i)
+                fn_inputs = fn.abi["inputs"]
+                if fn_inputs:
+                    i = Input(placeholder="comma separated args ~", id=f"fn-input-{fn.fn_name}", classes="fn-input")
+                    h = Horizontal(b, i, id=f"fn-group-{fn.fn_name}", classes="fn-group")
+                else:
+                    h = Horizontal(b, id=f"fn-group-{fn.fn_name}", classes="fn-group")
+                playground.mount(h)
                 self.contract = deployed_contract
-
+            self.query_one("#constructor-args", Input).value = ""
         except Exception as e:
             self.notify(f"Error deploying contract: {e}", severity="error")
 
