@@ -13,7 +13,7 @@ from rich.syntax import Syntax
 from textual import log
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal
-from textual.reactive import var
+from textual.reactive import var, reactive
 from textual.widgets import (
     Button,
     Collapsible,
@@ -43,7 +43,7 @@ from web3 import Web3, EthereumTesterProvider
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-__version__ = "0.0.13"
+__version__ = "0.0.14a1"
 SOLIDITY_VERSION = "0.8.26"
 solcx.install_solc(SOLIDITY_VERSION)
 solcx.set_solc_version(SOLIDITY_VERSION)
@@ -66,6 +66,7 @@ class Sneko(App):
     bytecode = None
     w3 = None
     contract = None
+    constructor_args = reactive("constructor args ~")
 
     def watch_show_tree(self, show_tree: bool) -> None:
         """Called when show_tree is modified."""
@@ -90,7 +91,7 @@ class Sneko(App):
                 yield Container(
                     Horizontal(
                         Button(
-                            "Compile", id="compile-button", variant="primary", disabled=True
+                            "Compile", id="compile-button", variant="success", disabled=True
                         ),
                         Input(
                             placeholder="Compiler version ~",
@@ -116,7 +117,7 @@ class Sneko(App):
                     Button(
                         "Generate Script",
                         id="generate-script-button",
-                        variant="success",
+                        variant="primary",
                         disabled=True,
                     ),
                     Static("", id="error-view"),
@@ -127,13 +128,24 @@ class Sneko(App):
                     Static("", id="deploy-address"),
                     Horizontal(
                         Button("Deploy", id="deploy-button", variant="success"),
-                        Input(placeholder="Constructor args (comma separated)", id="constructor-args"),
+                        Input(placeholder=f"{self.constructor_args}", id="constructor-args"),
                         id="deploy-horizontal",
                     ),
                     Container(id="playground-fn-body"),
                     id="playground-panel",
                 )
         yield Footer()
+
+    async def watch_constructor_args(self, constructor_args: str) -> None:
+        """Called when constructor_args is modified."""
+
+        input = self.query_one("#constructor-args", Input)
+        if constructor_args is None or constructor_args == "":
+            input.placeholder = "(no constructor args)"
+            input.disabled = True
+        else:
+            input.placeholder = constructor_args
+            input.disabled = False
 
     def on_mount(self) -> None:
         self.w3 = Web3(EthereumTesterProvider())
@@ -159,6 +171,11 @@ class Sneko(App):
         self.abi = None
         self.bytecode = None
 
+    def get_constructor_args(self, abi):
+        for abi_value in json.loads(abi) if type(abi) == str else abi:
+            if abi_value["type"] == "constructor":
+                return ", ".join([f"{arg['type']} {arg['name']}" for arg in abi_value["inputs"]])
+
     async def handle_compile_success(self):
         abi_value = self.abi
         bytecode_value = self.bytecode
@@ -179,7 +196,7 @@ class Sneko(App):
         self.query_one("#constructor-args", Input).value = ""
         await self.clear_deployed_contract()
 
-    async def handle_compilation(self) -> None:
+    async def compile_contract(self) -> None:
         self.contract = None
         self.query_one("#error-view", Static).update("")
         code_view = self.query_one("#code-view", TextArea)
@@ -196,6 +213,7 @@ class Sneko(App):
                 # Note: assumes only one contract:
                 contract_key = next(iter(compiled_sol))
                 contract_interface = compiled_sol[contract_key]
+                self.constructor_args = self.get_constructor_args(json.dumps(contract_interface["abi"]))
                 self.abi = json.dumps(contract_interface["abi"])
                 self.bytecode = json.dumps(contract_interface["bin"])
             # VYPER:
@@ -211,7 +229,8 @@ class Sneko(App):
                     return
                 else:
                     contract_artifacts = contract.stdout.split('\n')
-                    self.abi = json.dumps(contract_artifacts[0])
+                    self.constructor_args = self.get_constructor_args(contract_artifacts[0])
+                    self.abi = contract_artifacts[0]
                     self.bytecode = f'"{contract_artifacts[1]}"'
             # WAT?
             else:
@@ -277,13 +296,20 @@ class Sneko(App):
         
         try:
             contract = w3.eth.contract(abi=abi, bytecode=bytecode)
-            input_types = contract.abi[0]["inputs"]
+
+            constructor_types = None
+            for abi_value in contract.abi:
+                if abi_value["type"] == "constructor":
+                    constructor_types = abi_value["inputs"]
+            if constructor_types is None:
+                self.notify("No constructor method found", severity="error")
+                return
             constructor_arg_input = self.query_one("#constructor-args", Input).value
 
             if constructor_arg_input == "":
                 tx_hash = contract.constructor().transact()
             else:
-                typed_args = self.convert_string_to_typed_data(constructor_arg_input, input_types)
+                typed_args = self.convert_string_to_typed_data(constructor_arg_input, constructor_types)
                 tx_hash = contract.constructor(*typed_args).transact()
             self.notify(f"Transaction hash: {tx_hash.hex()}")
             tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -291,16 +317,22 @@ class Sneko(App):
 
             address_display = self.query_one("#deploy-address", Static)
             address_display.update(f"Contract address: {tx_receipt.contractAddress}")
+        except Exception as e:
+            self.notify(f"Error deploying contract: {e}", severity="error")
+            return
             
+        try:
             deployed_contract = w3.eth.contract(address=tx_receipt.contractAddress, abi=abi)
 
             fns = deployed_contract.all_functions()
             for fn in fns:
-                b = Button(fn.fn_name, id=f"fn-button-{fn.fn_name}", classes="fn-button")
+                is_tx = fn.abi["stateMutability"] in ["nonpayable", "payable"]
+                b = Button(fn.fn_name, id=f"fn-button-{fn.fn_name}", classes="fn-button", variant="warning" if is_tx else "primary")
                 playground = self.query_one("#playground-fn-body", Container)
                 fn_inputs = fn.abi["inputs"]
                 if fn_inputs:
-                    i = Input(placeholder="comma separated args ~", id=f"fn-input-{fn.fn_name}", classes="fn-input")
+                    ph = ", ".join([f"{arg['type']} {arg['name']}" for arg in fn_inputs])
+                    i = Input(placeholder=f"{ph}", id=f"fn-input-{fn.fn_name}", classes="fn-input")
                     h = Horizontal(b, i, id=f"fn-group-{fn.fn_name}", classes="fn-group")
                 else:
                     h = Horizontal(b, id=f"fn-group-{fn.fn_name}", classes="fn-group")
@@ -308,7 +340,7 @@ class Sneko(App):
                 self.contract = deployed_contract
             self.query_one("#constructor-args", Input).value = ""
         except Exception as e:
-            self.notify(f"Error deploying contract: {e}", severity="error")
+            self.notify(f"Error generating UI: {e}", severity="error")
 
 
     def get_contract_fn_abi(self, name):
@@ -319,11 +351,18 @@ class Sneko(App):
                 return declaration
         return None
             
+    # def is_tx_fn(self, name):
+    #     """Given a fn name, return whether it is a tx or call fn"""
+    #
+    #     fn_abi = self.get_contract_fn_abi(name)
+    #     return fn_abi["stateMutability"] in ["nonpayable", "payable"]
+
     def handle_contract_fn_button(self, button_id: str) -> None:
         """Handle a button click for a contract function."""
             
         button_id = button_id.replace("fn-button-", "")
 
+        # is_tx = self.is_tx_fn(button_id)
         # determine if call or transact:
         fn_abi = self.get_contract_fn_abi(button_id)
         is_tx = fn_abi["stateMutability"] in ["nonpayable", "payable"]
@@ -359,7 +398,7 @@ class Sneko(App):
         """Called when any button is clicked."""
 
         if event.button.id == "compile-button":
-            await self.handle_compilation()
+            await self.compile_contract()
         elif event.button.id == "copy-abi-button":
             input = self.query_one("#abi-view", Input)
             pyperclip.copy(input.value)

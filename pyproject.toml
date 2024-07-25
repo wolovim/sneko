@@ -1,6 +1,6 @@
 [project]
 name = "sneko"
-version = "0.0.13"
+version = "0.0.14a1"
 description = "Terminal GUI for Ethereum smart contracts"
 authors = [
     { name = "Marc Garreau", email = "marc@ethereum.org" }
@@ -13,6 +13,7 @@ dependencies = [
     "web3==7.0.0b7",
     "eth-tester>=0.12.0b1",
     "py-evm>=0.10.1b1",
+    "snekmate>=0.1.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.10"
