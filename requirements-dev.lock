@@ -197,6 +197,8 @@ semantic-version==2.10.0
     # via eth-tester
 six==1.16.0
     # via asttokens
+snekmate==0.1.0
+    # via sneko
 sortedcontainers==2.4.0
     # via trie
 stack-data==0.6.3
