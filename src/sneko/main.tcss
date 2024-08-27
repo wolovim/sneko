@@ -61,6 +61,12 @@ Sneko.-show-tree #tree-view {
 #generate-script-button {
     margin-top: 1;
     margin-bottom: 1;
+    margin-right: 2;
+}
+
+#generate-ape-button {
+    margin-top: 1;
+    margin-bottom: 1;
 }
 
 #playground-panel {
