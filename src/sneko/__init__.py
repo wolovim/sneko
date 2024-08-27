@@ -27,6 +27,7 @@ from textual.widgets import (
     TextArea,
 )
 from web3 import Web3, EthereumTesterProvider
+from sneko.utils import build_ape_project
 
 # from textual.logging import TextualHandler
 #
@@ -80,7 +81,9 @@ class Sneko(App):
         path = sneko_contracts_path if len(sys.argv) < 2 else sys.argv[1]
 
         yield Header()
-        with Collapsible(title="Collapse Editor", collapsed=False, id="collapsible-editor"):
+        with Collapsible(
+            title="Collapse Editor", collapsed=False, id="collapsible-editor"
+        ):
             yield Container(
                 DirectoryTree(path, id="tree-view"),
                 TextArea.code_editor(text="", id="code-view"),
@@ -91,7 +94,10 @@ class Sneko(App):
                 yield Container(
                     Horizontal(
                         Button(
-                            "Compile", id="compile-button", variant="success", disabled=True
+                            "Compile",
+                            id="compile-button",
+                            variant="success",
+                            disabled=True,
                         ),
                         Input(
                             placeholder="Compiler version ~",
@@ -106,7 +112,9 @@ class Sneko(App):
                         id="input-abi",
                     ),
                     Horizontal(
-                        Button("Copy Bytecode", id="copy-bytecode-button", disabled=True),
+                        Button(
+                            "Copy Bytecode", id="copy-bytecode-button", disabled=True
+                        ),
                         Input(
                             placeholder="Deployment bytecode ~",
                             id="bytecode-view",
@@ -114,11 +122,19 @@ class Sneko(App):
                         ),
                         id="input-bytecode",
                     ),
-                    Button(
-                        "Generate Script",
-                        id="generate-script-button",
-                        variant="primary",
-                        disabled=True,
+                    Horizontal(
+                        Button(
+                            "Generate Script",
+                            id="generate-script-button",
+                            variant="primary",
+                            disabled=True,
+                        ),
+                        Button(
+                            "Generate Ape Project",
+                            id="generate-ape-button",
+                            variant="primary",
+                            disabled=True,
+                        ),
                     ),
                     Static("", id="error-view"),
                     id="compilation-panel",
@@ -128,7 +144,10 @@ class Sneko(App):
                     Static("", id="deploy-address"),
                     Horizontal(
                         Button("Deploy", id="deploy-button", variant="success"),
-                        Input(placeholder=f"{self.constructor_args}", id="constructor-args"),
+                        Input(
+                            placeholder=f"{self.constructor_args}",
+                            id="constructor-args",
+                        ),
                         id="deploy-horizontal",
                     ),
                     Container(id="playground-fn-body"),
@@ -174,7 +193,9 @@ class Sneko(App):
     def get_constructor_args(self, abi):
         for abi_value in json.loads(abi) if type(abi) == str else abi:
             if abi_value["type"] == "constructor":
-                return ", ".join([f"{arg['type']} {arg['name']}" for arg in abi_value["inputs"]])
+                return ", ".join(
+                    [f"{arg['type']} {arg['name']}" for arg in abi_value["inputs"]]
+                )
 
     async def handle_compile_success(self):
         abi_value = self.abi
@@ -192,6 +213,9 @@ class Sneko(App):
 
         generate_script_button = self.query_one("#generate-script-button", Button)
         generate_script_button.disabled = False
+
+        generate_ape_button = self.query_one("#generate-ape-button", Button)
+        generate_ape_button.disabled = False
 
         self.query_one("#constructor-args", Input).value = ""
         await self.clear_deployed_contract()
@@ -213,23 +237,27 @@ class Sneko(App):
                 # Note: assumes only one contract:
                 contract_key = next(iter(compiled_sol))
                 contract_interface = compiled_sol[contract_key]
-                self.constructor_args = self.get_constructor_args(json.dumps(contract_interface["abi"]))
+                self.constructor_args = self.get_constructor_args(
+                    json.dumps(contract_interface["abi"])
+                )
                 self.abi = json.dumps(contract_interface["abi"])
                 self.bytecode = json.dumps(contract_interface["bin"])
             # VYPER:
             elif file_extension == ".vy":
                 contract_path = Path(self.sub_title)
                 contract = subprocess.run(
-                    ['vyper', contract_path.resolve(), '-f', 'abi,bytecode'],
+                    ["vyper", contract_path.resolve(), "-f", "abi,bytecode"],
                     capture_output=True,
-                    text=True
+                    text=True,
                 )
                 if contract.stderr:
                     self.handle_compile_error(contract.stderr)
                     return
                 else:
-                    contract_artifacts = contract.stdout.split('\n')
-                    self.constructor_args = self.get_constructor_args(contract_artifacts[0])
+                    contract_artifacts = contract.stdout.split("\n")
+                    self.constructor_args = self.get_constructor_args(
+                        contract_artifacts[0]
+                    )
                     self.abi = contract_artifacts[0]
                     self.bytecode = f'"{contract_artifacts[1]}"'
             # WAT?
@@ -246,7 +274,7 @@ class Sneko(App):
 
         abi = self.query_one("#abi-view", Input).value
         bytecode = self.query_one("#bytecode-view", Input).value
-        content = f'ABI={abi}\nBYTECODE={bytecode}\n\n'
+        content = f"ABI={abi}\nBYTECODE={bytecode}\n\n"
 
         try:
             path = os.path.join(os.path.dirname(__file__), "snippets", "script.py")
@@ -278,7 +306,7 @@ class Sneko(App):
             # TODO: handle remaining types
 
         return typed_values
-        
+
     async def deploy_contract(self) -> None:
         """Deploy the contract to the Ethereum network."""
 
@@ -293,7 +321,7 @@ class Sneko(App):
         abi = self.query_one("#abi-view", Input).value
         bytecode = json.loads(bytecode)
         abi = json.loads(abi)
-        
+
         try:
             contract = w3.eth.contract(abi=abi, bytecode=bytecode)
 
@@ -309,7 +337,9 @@ class Sneko(App):
             if constructor_arg_input == "":
                 tx_hash = contract.constructor().transact()
             else:
-                typed_args = self.convert_string_to_typed_data(constructor_arg_input, constructor_types)
+                typed_args = self.convert_string_to_typed_data(
+                    constructor_arg_input, constructor_types
+                )
                 tx_hash = contract.constructor(*typed_args).transact()
             self.notify(f"Transaction hash: {tx_hash.hex()}")
             tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -320,20 +350,35 @@ class Sneko(App):
         except Exception as e:
             self.notify(f"Error deploying contract: {e}", severity="error")
             return
-            
+
         try:
-            deployed_contract = w3.eth.contract(address=tx_receipt.contractAddress, abi=abi)
+            deployed_contract = w3.eth.contract(
+                address=tx_receipt.contractAddress, abi=abi
+            )
 
             fns = deployed_contract.all_functions()
             for fn in fns:
                 is_tx = fn.abi["stateMutability"] in ["nonpayable", "payable"]
-                b = Button(fn.fn_name, id=f"fn-button-{fn.fn_name}", classes="fn-button", variant="warning" if is_tx else "primary")
+                b = Button(
+                    fn.fn_name,
+                    id=f"fn-button-{fn.fn_name}",
+                    classes="fn-button",
+                    variant="warning" if is_tx else "primary",
+                )
                 playground = self.query_one("#playground-fn-body", Container)
                 fn_inputs = fn.abi["inputs"]
                 if fn_inputs:
-                    ph = ", ".join([f"{arg['type']} {arg['name']}" for arg in fn_inputs])
-                    i = Input(placeholder=f"{ph}", id=f"fn-input-{fn.fn_name}", classes="fn-input")
-                    h = Horizontal(b, i, id=f"fn-group-{fn.fn_name}", classes="fn-group")
+                    ph = ", ".join(
+                        [f"{arg['type']} {arg['name']}" for arg in fn_inputs]
+                    )
+                    i = Input(
+                        placeholder=f"{ph}",
+                        id=f"fn-input-{fn.fn_name}",
+                        classes="fn-input",
+                    )
+                    h = Horizontal(
+                        b, i, id=f"fn-group-{fn.fn_name}", classes="fn-group"
+                    )
                 else:
                     h = Horizontal(b, id=f"fn-group-{fn.fn_name}", classes="fn-group")
                 playground.mount(h)
@@ -342,7 +387,6 @@ class Sneko(App):
         except Exception as e:
             self.notify(f"Error generating UI: {e}", severity="error")
 
-
     def get_contract_fn_abi(self, name):
         """Given a fn name, return the relevant ABI info"""
 
@@ -350,7 +394,7 @@ class Sneko(App):
             if declaration.get("name") == name:
                 return declaration
         return None
-            
+
     # def is_tx_fn(self, name):
     #     """Given a fn name, return whether it is a tx or call fn"""
     #
@@ -359,27 +403,33 @@ class Sneko(App):
 
     def handle_contract_fn_button(self, button_id: str) -> None:
         """Handle a button click for a contract function."""
-            
+
         button_id = button_id.replace("fn-button-", "")
 
         # is_tx = self.is_tx_fn(button_id)
         # determine if call or transact:
         fn_abi = self.get_contract_fn_abi(button_id)
         is_tx = fn_abi["stateMutability"] in ["nonpayable", "payable"]
-        
+
         try:
             input_value = self.query_one(f"#fn-input-{button_id}").value
         except:
             input_value = None
-            
+
         if input_value:
             try:
-                converted_input = self.convert_string_to_typed_data(input_value, fn_abi["inputs"])
+                converted_input = self.convert_string_to_typed_data(
+                    input_value, fn_abi["inputs"]
+                )
                 if is_tx:
-                    tx_hash = self.contract.functions[button_id](*converted_input).transact()
+                    tx_hash = self.contract.functions[button_id](
+                        *converted_input
+                    ).transact()
                     self.notify(f"Tx hash: {tx_hash.hex()}")
                 else:
-                    response = self.contract.functions[button_id](*converted_input).call()
+                    response = self.contract.functions[button_id](
+                        *converted_input
+                    ).call()
                     self.notify(f"Function response: {response}")
             except Exception as e:
                 self.notify(f"Error calling function: {e}", severity="error")
@@ -393,12 +443,19 @@ class Sneko(App):
                     self.notify(f"Function response: {response}")
             except Exception as e:
                 self.notify(f"Error calling function: {e}", severity="error")
-        
+
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """Called when any button is clicked."""
 
         if event.button.id == "compile-button":
             await self.compile_contract()
+        elif event.button.id == "generate-ape-button":
+            code_view = self.query_one("#code-view", TextArea)
+            try:
+                build_ape_project(self.sub_title, code_view.text)
+                self.notify("built!")
+            except Exception as e:
+                self.notify(f"Error building Ape project: {e}", severity="error")
         elif event.button.id == "copy-abi-button":
             input = self.query_one("#abi-view", Input)
             pyperclip.copy(input.value)
@@ -432,9 +489,11 @@ class Sneko(App):
             text_area = self.query_one(TextArea)
             text_area.load_text(syntax.code)
             self.query_one("#code-view").scroll_home(animate=False)
-            self.sub_title = str(event.path)
 
+            file_name = Path(event.path).stem
             file_extension = Path(event.path).suffix
+            self.sub_title = file_name + file_extension
+
             if file_extension == ".sol":
                 compiler_input = self.query_one("#compiler-version", Input)
                 compiler_input.value = f"solidity {SOLIDITY_VERSION}"
@@ -464,6 +523,8 @@ class Sneko(App):
         bytecode_button.disabled = True
         generate_script_button = self.query_one("#generate-script-button", Button)
         generate_script_button.disabled = True
+        generate_ape_button = self.query_one("#generate-ape-button", Button)
+        generate_ape_button.disabled = True
 
         self.abi = None
         self.bytecode = None
