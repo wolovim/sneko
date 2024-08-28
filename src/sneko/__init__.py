@@ -136,7 +136,6 @@ class Sneko(App):
                             disabled=True,
                         ),
                     ),
-                    Static("", id="error-view"),
                     id="compilation-panel",
                 )
             with TabPane("Playground", id="playground-tab"):
@@ -174,9 +173,9 @@ class Sneko(App):
         if "vyper: command not found" in str(e):
             error_msg = f"{BOLD}A local installation of Vyper is required to compile Vyper contracts.{RESET}\n"
             error_msg += f"\n{str(e)}"
-            self.query_one("#error-view", Static).update(error_msg)
+            self.notify(error_msg, severity="error", timeout=10)
         else:
-            self.query_one("#error-view", Static).update(str(e))
+            self.notify(str(e), severity="error", timeout=10)
         self.query_one("#abi-view", Input).value = "oop!"
         self.query_one("#bytecode-view", Input).value = "oop!"
 
@@ -222,7 +221,6 @@ class Sneko(App):
 
     async def compile_contract(self) -> None:
         self.contract = None
-        self.query_one("#error-view", Static).update("")
         code_view = self.query_one("#code-view", TextArea)
         code = code_view.text
 
