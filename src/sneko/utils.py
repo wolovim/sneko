@@ -14,6 +14,24 @@ GITIGNORE_CONTENT = """
 __pycache__
 """
 
+DEPLOY_SCRIPT = """import click
+from ape import accounts, project
+from ape.cli import (
+    ConnectedProviderCommand,
+    network_option,
+    select_account,
+)
+
+@click.command(cls=ConnectedProviderCommand)
+@network_option()
+def cli(ecosystem, network, provider):
+    click.echo(f"You are connected to network '{ecosystem.name}:{network.name}' (chain ID: {provider.chain_id}).")
+    account = select_account()
+    # Replace your contract name and constructor args here:
+    contract = project.YourContractName.deploy(your_args, sender=account)
+    click.echo(f"Deployed contract to {contract.address} on {ecosystem.name}:{network.name}.")
+"""
+
 
 def build_ape_project(file_name, code):
     suffix = file_name.split(".")[-1]
@@ -46,5 +64,9 @@ def build_ape_project(file_name, code):
         f"  - name: {'solidity' if suffix == 'sol' else 'vyper'}\n",
         encoding="utf8",
     )
+
+    deploy_script = project_folder / "scripts" / "deploy.py"
+    deploy_script.touch()
+    deploy_script.write_text(DEPLOY_SCRIPT, encoding="utf8")
 
     print(f"{project_name} is written in {CONFIG_FILE_NAME}")
