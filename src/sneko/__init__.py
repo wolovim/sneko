@@ -497,12 +497,15 @@ class Sneko(App):
             if file_extension == ".sol":
                 compiler_input = self.query_one("#compiler-version", Input)
                 compiler_input.value = f"solidity {SOLIDITY_VERSION}"
+                code_view.read_only = False
             elif file_extension == ".vy":
                 compiler_input = self.query_one("#compiler-version", Input)
                 compiler_input.value = f"vyper {vyper.version.version}"
+                code_view.read_only = True
             else:
                 compiler_input = self.query_one("#compiler-version", Input)
                 compiler_input.value = "wat? only vyper and solidity supported"
+                code_view.read_only = True
 
             compile_button = self.query_one("#compile-button", Button)
             compile_button.disabled = False
