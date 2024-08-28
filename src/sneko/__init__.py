@@ -311,8 +311,7 @@ class Sneko(App):
         """Deploy the contract to the Ethereum network."""
 
         if not self.abi or not self.bytecode:
-            self.notify("Compile the contract first", severity="error")
-            return
+            await self.compile_contract()
 
         await self.clear_deployed_contract()
 
@@ -473,7 +472,7 @@ class Sneko(App):
         else:
             log("unhandled button press event ~")
 
-    def on_directory_tree_file_selected(
+    async def on_directory_tree_file_selected(
         self, event: DirectoryTree.FileSelected
     ) -> None:
         """Called when a file in the directory tree is clicked."""
@@ -510,6 +509,7 @@ class Sneko(App):
             compile_button = self.query_one("#compile-button", Button)
             compile_button.disabled = False
             self.reset_inputs()
+            await self.clear_deployed_contract()
             self.query_one(TabbedContent).active = "compile-tab"
 
     def reset_inputs(self) -> None:
