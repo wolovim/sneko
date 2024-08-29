@@ -149,7 +149,7 @@ class Sneko(App):
                         ),
                         id="deploy-horizontal",
                     ),
-                    Container(id="playground-fn-body"),
+                    Static(id="playground-fn-body"),
                     id="playground-panel",
                 )
         yield Footer()
@@ -173,9 +173,9 @@ class Sneko(App):
         if "vyper: command not found" in str(e):
             error_msg = f"{BOLD}A local installation of Vyper is required to compile Vyper contracts.{RESET}\n"
             error_msg += f"\n{str(e)}"
-            self.notify(error_msg, severity="error", timeout=10)
+            self.notify(error_msg, severity="error", timeout=100)
         else:
-            self.notify(str(e), severity="error", timeout=10)
+            self.notify(str(e), severity="error", timeout=100)
         self.query_one("#abi-view", Input).value = "oop!"
         self.query_one("#bytecode-view", Input).value = "oop!"
 
@@ -228,12 +228,16 @@ class Sneko(App):
 
         try:
             # SOLIDITY:
+            current_dir = os.path.dirname(__file__)
+            file_path = os.path.join(current_dir, 'contracts', 'solidity', 'OpenZeppelin', 'v5.0.2')
             if file_extension == ".sol":
                 compiled_sol = solcx.compile_source(
-                    code, output_values=["abi", "bin", "bin-runtime"]
+                    code,
+                    output_values=["abi", "bin", "bin-runtime"],
+                    import_remappings=[f"@openzeppelin/contracts={file_path}"],
                 )
-                # Note: assumes only one contract:
-                contract_key = next(iter(compiled_sol))
+                # Main contract has key: "<stdin>:<contract_name>"
+                contract_key = next((key for key in compiled_sol if key.startswith("<stdin>:")), None)
                 contract_interface = compiled_sol[contract_key]
                 self.constructor_args = self.get_constructor_args(
                     json.dumps(contract_interface["abi"])
@@ -287,7 +291,7 @@ class Sneko(App):
     async def clear_deployed_contract(self) -> None:
         """Unmount deployed contract buttons and inputs."""
 
-        container = self.query_one("#playground-fn-body", Container)
+        container = self.query_one("#playground-fn-body", Static)
         await container.remove_children()
         address_display = self.query_one("#deploy-address", Static)
         address_display.update("")
@@ -353,6 +357,7 @@ class Sneko(App):
                 address=tx_receipt.contractAddress, abi=abi
             )
 
+            playground = self.query_one("#playground-fn-body", Static)
             fns = deployed_contract.all_functions()
             for fn in fns:
                 is_tx = fn.abi["stateMutability"] in ["nonpayable", "payable"]
@@ -362,7 +367,6 @@ class Sneko(App):
                     classes="fn-button",
                     variant="warning" if is_tx else "primary",
                 )
-                playground = self.query_one("#playground-fn-body", Container)
                 fn_inputs = fn.abi["inputs"]
                 if fn_inputs:
                     ph = ", ".join(
