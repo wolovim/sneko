@@ -44,7 +44,7 @@ from sneko.utils import build_ape_project
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-__version__ = "0.0.14a1"
+__version__ = "0.0.14a2"
 SOLIDITY_VERSION = "0.8.26"
 solcx.install_solc(SOLIDITY_VERSION)
 solcx.set_solc_version(SOLIDITY_VERSION)
@@ -229,7 +229,9 @@ class Sneko(App):
         try:
             # SOLIDITY:
             current_dir = os.path.dirname(__file__)
-            file_path = os.path.join(current_dir, 'contracts', 'solidity', 'OpenZeppelin', 'v5.0.2')
+            file_path = os.path.join(
+                current_dir, "contracts", "solidity", "OpenZeppelin", "v5.0.2"
+            )
             if file_extension == ".sol":
                 compiled_sol = solcx.compile_source(
                     code,
@@ -237,7 +239,9 @@ class Sneko(App):
                     import_remappings=[f"@openzeppelin/contracts={file_path}"],
                 )
                 # Main contract has key: "<stdin>:<contract_name>"
-                contract_key = next((key for key in compiled_sol if key.startswith("<stdin>:")), None)
+                contract_key = next(
+                    (key for key in compiled_sol if key.startswith("<stdin>:")), None
+                )
                 contract_interface = compiled_sol[contract_key]
                 self.constructor_args = self.get_constructor_args(
                     json.dumps(contract_interface["abi"])

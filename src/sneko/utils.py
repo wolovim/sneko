@@ -32,6 +32,73 @@ def cli(ecosystem, network, provider):
     click.echo(f"Deployed contract to {contract.address} on {ecosystem.name}:{network.name}.")
 """
 
+OZ_CONFIG = """
+dependencies:
+ - name: OpenZeppelin
+   github: OpenZeppelin/openzeppelin-contracts
+   version: 5.0.2
+
+solidity:
+ import_remapping:
+  - "@openzeppelin=OpenZeppelin/5.0.2"
+"""
+
+README_CONTENT = """# sneko-ape-project
+
+So, you've generated an Ape project using sneko...
+
+## Getting set up
+
+- Install ape: `pip install eth-ape` (or `pipx install eth-ape` if you prefer a global install)
+- Install project plugins: `ape plugins install .`
+- Sanity check: `ape compile`
+
+## Using Ape
+
+- Run tests: `ape test`
+- Deploy script: `ape run deploy`
+"""
+
+CONFTEST_CONTENT = """import pytest
+
+@pytest.fixture
+def acct1(accounts):
+    return accounts[0]
+
+
+@pytest.fixture
+def acct2(accounts):
+    return accounts[1]
+
+
+@pytest.fixture
+def acct3(accounts):
+    return accounts[2]
+
+
+# @pytest.fixture
+# def example_contract(acct1, project):
+#    return acct1.deploy(project.YourContract, acct1.address)
+"""
+
+SMOKE_TEST_CONTENT = """import pytest
+from ape import convert
+
+
+def test_smoke(acct1, acct2, acct3, example_contract):
+    assert acct1.balance > 0
+    assert acct2.balance > 0
+    assert acct3.balance > 0
+
+    # contract read:
+    # assert example_contract.exampleFunction() == 42
+
+    # contract write:
+    # arbitrary_amount = convert("0.0001 ETH", int)
+    # example_contract.doSomething("something", sender=acct1, value=arbitrary_amount)
+    # assert example_contract.state_value == "something"
+"""
+
 
 def build_ape_project(file_name, code):
     suffix = file_name.split(".")[-1]
@@ -55,13 +122,22 @@ def build_ape_project(file_name, code):
 
     readme_path = project_folder / "README.md"
     readme_path.touch()
-    readme_path.write_text("TODO: ape instructions", encoding="utf8")
+    readme_path.write_text(README_CONTENT, encoding="utf8")
+
+    conftest_path = project_folder / "tests" / "conftest.py"
+    conftest_path.touch()
+    conftest_path.write_text(CONFTEST_CONTENT, encoding="utf8")
+
+    smoke_test_path = project_folder / "tests" / "test_example_contract.py"
+    smoke_test_path.touch()
+    smoke_test_path.write_text(SMOKE_TEST_CONTENT, encoding="utf8")
 
     ape_config = project_folder / CONFIG_FILE_NAME
     ape_config.write_text(
         f"name: {project_name}\n\n"
         f"plugins:\n"
-        f"  - name: {'solidity' if suffix == 'sol' else 'vyper'}\n",
+        f"  - name: {'solidity' if suffix == 'sol' else 'vyper'}\n\n"
+        f"{OZ_CONFIG if suffix == 'sol' else ''}",
         encoding="utf8",
     )
 

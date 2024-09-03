@@ -10,6 +10,8 @@ tx_hash = contract_factory.constructor().transact()
 contract_address = w3.eth.get_transaction_receipt(tx_hash)["contractAddress"]
 contract = w3.eth.contract(address=contract_address, abi=ABI)
 
-import pdb; pdb.set_trace()  # noqa
+import pdb
+
+pdb.set_trace()  # noqa
 
 # result = contract.functions.exampleFunction().call()
