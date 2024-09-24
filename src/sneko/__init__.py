@@ -458,7 +458,7 @@ class Sneko(App):
             code_view = self.query_one("#code-view", TextArea)
             try:
                 build_ape_project(self.sub_title, code_view.text)
-                self.notify("built!")
+                self.notify("Ape project created in directory: sneko-ape-project")
             except Exception as e:
                 self.notify(f"Error building Ape project: {e}", severity="error")
         elif event.button.id == "copy-abi-button":
