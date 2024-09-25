@@ -44,7 +44,7 @@ from sneko.utils import build_ape_project
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-__version__ = "0.0.14a2"
+__version__ = "1.0.14a3"
 SOLIDITY_VERSION = "0.8.26"
 solcx.install_solc(SOLIDITY_VERSION)
 solcx.set_solc_version(SOLIDITY_VERSION)
@@ -365,6 +365,7 @@ class Sneko(App):
             fns = deployed_contract.all_functions()
             for fn in fns:
                 is_tx = fn.abi["stateMutability"] in ["nonpayable", "payable"]
+                is_payable = fn.abi["stateMutability"] == "payable"
                 b = Button(
                     fn.fn_name,
                     id=f"fn-button-{fn.fn_name}",
@@ -373,11 +374,11 @@ class Sneko(App):
                 )
                 fn_inputs = fn.abi["inputs"]
                 if fn_inputs:
-                    ph = ", ".join(
+                    placeholder = ", ".join(
                         [f"{arg['type']} {arg['name']}" for arg in fn_inputs]
                     )
                     i = Input(
-                        placeholder=f"{ph}",
+                        placeholder=f"{placeholder}",
                         id=f"fn-input-{fn.fn_name}",
                         classes="fn-input",
                     )
@@ -387,6 +388,18 @@ class Sneko(App):
                 else:
                     h = Horizontal(b, id=f"fn-group-{fn.fn_name}", classes="fn-group")
                 playground.mount(h)
+                if is_payable:
+                    playground.mount(
+                        Horizontal(
+                            Static("↳", classes="fn-value-label"),
+                            Input(
+                                placeholder="payable: value in wei",
+                                id=f"fn-value-{fn.fn_name}",
+                                classes="fn-value",
+                            ),
+                            classes="fn-value-grouping",
+                        )
+                    )
                 self.contract = deployed_contract
             self.query_one("#constructor-args", Input).value = ""
         except Exception as e:
@@ -415,11 +428,17 @@ class Sneko(App):
         # determine if call or transact:
         fn_abi = self.get_contract_fn_abi(button_id)
         is_tx = fn_abi["stateMutability"] in ["nonpayable", "payable"]
+        is_payable = fn_abi["stateMutability"] == "payable"
 
         try:
             input_value = self.query_one(f"#fn-input-{button_id}").value
         except:
             input_value = None
+
+        try:
+            value = self.query_one(f"#fn-value-{button_id}").value
+        except:
+            value = None
 
         if input_value:
             try:
@@ -429,7 +448,7 @@ class Sneko(App):
                 if is_tx:
                     tx_hash = self.contract.functions[button_id](
                         *converted_input
-                    ).transact()
+                    ).transact({"value": int(value)} if is_payable else {})
                     self.notify(f"Tx hash: {tx_hash.hex()}")
                 else:
                     response = self.contract.functions[button_id](
@@ -441,7 +460,9 @@ class Sneko(App):
         else:
             try:
                 if is_tx:
-                    tx_hash = self.contract.functions[button_id]().transact()
+                    tx_hash = self.contract.functions[button_id]().transact(
+                        {"value": int(value)} if is_payable else {}
+                    )
                     self.notify(f"Tx hash: {tx_hash.hex()}")
                 else:
                     response = self.contract.functions[button_id]().call()

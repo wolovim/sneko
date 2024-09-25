@@ -96,3 +96,14 @@ Sneko.-show-tree #tree-view {
 .fn-input {
     height: auto;
 }
+
+.fn-value-grouping {
+    height: auto;
+}
+
+.fn-value-label {
+    text-style: bold;
+    padding: 1 0 1 1;
+    color: gray;
+    width: auto;
+}
