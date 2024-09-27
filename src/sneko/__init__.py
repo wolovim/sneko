@@ -141,6 +141,7 @@ class Sneko(App):
             with TabPane("Playground", id="playground-tab"):
                 yield Container(
                     Static("", id="deploy-address"),
+                    Static("", id="contract-balance"),
                     Horizontal(
                         Button("Deploy", id="deploy-button", variant="success"),
                         Input(
@@ -313,6 +314,16 @@ class Sneko(App):
 
         return typed_values
 
+    async def update_contract_balance(self, address: str) -> None:
+        """Update the contract balance."""
+
+        balance_wei = self.w3.eth.get_balance(address)
+        balance_ether = self.w3.from_wei(balance_wei, 'ether')
+
+        self.query_one("#contract-balance", Static).update(
+            f"Contract balance: {balance_ether} ETH"
+        )
+
     async def deploy_contract(self) -> None:
         """Deploy the contract to the Ethereum network."""
 
@@ -402,6 +413,7 @@ class Sneko(App):
                     )
                 self.contract = deployed_contract
             self.query_one("#constructor-args", Input).value = ""
+            await self.update_contract_balance(tx_receipt.contractAddress)
         except Exception as e:
             self.notify(f"Error generating UI: {e}", severity="error")
 
@@ -419,7 +431,7 @@ class Sneko(App):
     #     fn_abi = self.get_contract_fn_abi(name)
     #     return fn_abi["stateMutability"] in ["nonpayable", "payable"]
 
-    def handle_contract_fn_button(self, button_id: str) -> None:
+    async def handle_contract_fn_button(self, button_id: str) -> None:
         """Handle a button click for a contract function."""
 
         button_id = button_id.replace("fn-button-", "")
@@ -450,6 +462,7 @@ class Sneko(App):
                         *converted_input
                     ).transact({"value": int(value)} if is_payable else {})
                     self.notify(f"Tx hash: {tx_hash.hex()}")
+                    await self.update_contract_balance(self.contract.address)
                 else:
                     response = self.contract.functions[button_id](
                         *converted_input
@@ -464,6 +477,7 @@ class Sneko(App):
                         {"value": int(value)} if is_payable else {}
                     )
                     self.notify(f"Tx hash: {tx_hash.hex()}")
+                    await self.update_contract_balance(self.contract.address)
                 else:
                     response = self.contract.functions[button_id]().call()
                     self.notify(f"Function response: {response}")
@@ -495,7 +509,7 @@ class Sneko(App):
         elif event.button.id == "deploy-button":
             await self.deploy_contract()
         elif event.button.id.startswith("fn-button-"):
-            self.handle_contract_fn_button(event.button.id)
+            await self.handle_contract_fn_button(event.button.id)
         else:
             log("unhandled button press event ~")
 
