@@ -115,6 +115,8 @@ packaging==23.2
     # via vyper
 parsimonious==0.10.0
     # via eth-abi
+platformdirs==4.3.6
+    # via textual
 py-ecc==7.0.1
     # via py-evm
 py-evm==0.10.1b1
@@ -157,7 +159,7 @@ snekmate==0.1.0
     # via sneko
 sortedcontainers==2.4.0
     # via trie
-textual==0.73.0
+textual==0.81.0
     # via sneko
 toolz==0.12.1
     # via cytoolz

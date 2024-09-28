@@ -8,7 +8,7 @@ authors = [
 dependencies = [
     "py-solc-x",
     "pyperclip",
-    "textual>=0.73.0",
+    "textual>=0.81.0",
     "vyper==0.4.0",
     "web3==7.0.0b7",
     "eth-tester>=0.12.0b1",

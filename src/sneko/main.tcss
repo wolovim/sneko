@@ -73,6 +73,19 @@ Sneko.-show-tree #tree-view {
     height: auto;
 }
 
+#acct-select-horizontal {
+    height: auto;
+}
+
+#acct-label{
+    margin: 1 0;
+    width: 16;
+}
+
+#acct-select {
+    width: 74;
+}
+
 #deploy-horizontal {
     height: auto;
 }

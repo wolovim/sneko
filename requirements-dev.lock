@@ -149,6 +149,7 @@ pexpect==4.9.0
     # via ipython
 platformdirs==4.2.2
     # via black
+    # via textual
 prompt-toolkit==3.0.47
     # via ipython
 ptyprocess==0.7.0
@@ -203,7 +204,7 @@ sortedcontainers==2.4.0
     # via trie
 stack-data==0.6.3
     # via ipython
-textual==0.73.0
+textual==0.81.0
     # via sneko
     # via textual-dev
 textual-dev==1.5.1

@@ -10,7 +10,7 @@ import vyper
 from pathlib import Path
 from rich.syntax import Syntax
 
-from textual import log
+from textual import log, on
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal
 from textual.reactive import var, reactive
@@ -21,6 +21,7 @@ from textual.widgets import (
     Footer,
     Header,
     Input,
+    Select,
     Static,
     TabbedContent,
     TabPane,
@@ -140,6 +141,11 @@ class Sneko(App):
                 )
             with TabPane("Playground", id="playground-tab"):
                 yield Container(
+                    Horizontal(
+                        Static("Active account:", id="acct-label"),
+                        Select((), id="acct-select"),
+                        id="acct-select-horizontal",
+                    ),
                     Static("", id="deploy-address"),
                     Static("", id="contract-balance"),
                     Horizontal(
@@ -166,9 +172,22 @@ class Sneko(App):
             input.placeholder = constructor_args
             input.disabled = False
 
-    def on_mount(self) -> None:
+    async def on_mount(self) -> None:
         self.w3 = Web3(EthereumTesterProvider())
+        self.active_account = self.w3.eth.accounts[0]
+        await self.update_account_balances()
         self.query_one(DirectoryTree).focus()
+
+    async def update_account_balances(self) -> None:
+        w3 = self.w3
+        accounts = w3.eth.accounts
+        options = [
+            (f"{a} ({w3.from_wei(w3.eth.get_balance(a), 'ether')} ETH)", a)
+            for a in accounts
+        ]
+        sel = self.query_one("#acct-select", Select)
+        sel.set_options(options)
+        sel.value = self.active_account
 
     def handle_compile_error(self, e) -> None:
         if "vyper: command not found" in str(e):
@@ -318,11 +337,15 @@ class Sneko(App):
         """Update the contract balance."""
 
         balance_wei = self.w3.eth.get_balance(address)
-        balance_ether = self.w3.from_wei(balance_wei, 'ether')
+        balance_ether = self.w3.from_wei(balance_wei, "ether")
 
         self.query_one("#contract-balance", Static).update(
             f"Contract balance: {balance_ether} ETH"
         )
+
+    @on(Select.Changed)
+    def select_changed(self, event: Select.Changed) -> None:
+        self.active_account = event.value
 
     async def deploy_contract(self) -> None:
         """Deploy the contract to the Ethereum network."""
@@ -350,13 +373,14 @@ class Sneko(App):
                 return
             constructor_arg_input = self.query_one("#constructor-args", Input).value
 
+            tx_body = {"from": self.active_account}
             if constructor_arg_input == "":
-                tx_hash = contract.constructor().transact()
+                tx_hash = contract.constructor().transact(tx_body)
             else:
                 typed_args = self.convert_string_to_typed_data(
                     constructor_arg_input, constructor_types
                 )
-                tx_hash = contract.constructor(*typed_args).transact()
+                tx_hash = contract.constructor(*typed_args).transact(tx_body)
             self.notify(f"Transaction hash: {tx_hash.hex()}")
             tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
             self.notify(f"Contract address: {tx_receipt.contractAddress}")
@@ -414,6 +438,7 @@ class Sneko(App):
                 self.contract = deployed_contract
             self.query_one("#constructor-args", Input).value = ""
             await self.update_contract_balance(tx_receipt.contractAddress)
+            await self.update_account_balances()
         except Exception as e:
             self.notify(f"Error generating UI: {e}", severity="error")
 
@@ -458,11 +483,16 @@ class Sneko(App):
                     input_value, fn_abi["inputs"]
                 )
                 if is_tx:
+                    tx_body = {
+                        "value": int(value) if is_payable else 0,
+                        "from": self.active_account,
+                    }
                     tx_hash = self.contract.functions[button_id](
                         *converted_input
-                    ).transact({"value": int(value)} if is_payable else {})
+                    ).transact(tx_body)
                     self.notify(f"Tx hash: {tx_hash.hex()}")
                     await self.update_contract_balance(self.contract.address)
+                    await self.update_account_balances()
                 else:
                     response = self.contract.functions[button_id](
                         *converted_input
@@ -473,11 +503,14 @@ class Sneko(App):
         else:
             try:
                 if is_tx:
-                    tx_hash = self.contract.functions[button_id]().transact(
-                        {"value": int(value)} if is_payable else {}
-                    )
+                    tx_body = {
+                        "value": int(value) if is_payable else 0,
+                        "from": self.active_account,
+                    }
+                    tx_hash = self.contract.functions[button_id]().transact(tx_body)
                     self.notify(f"Tx hash: {tx_hash.hex()}")
                     await self.update_contract_balance(self.contract.address)
+                    await self.update_account_balances()
                 else:
                     response = self.contract.functions[button_id]().call()
                     self.notify(f"Function response: {response}")
