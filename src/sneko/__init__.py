@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import pyperclip
 import solcx
@@ -29,7 +28,9 @@ from textual.widgets import (
 )
 from web3 import Web3, EthereumTesterProvider
 from sneko.utils import build_ape_project
+import tree_sitter_types.parser as tst
 
+# import logging
 # from textual.logging import TextualHandler
 #
 # logging.basicConfig(
@@ -45,7 +46,7 @@ from sneko.utils import build_ape_project
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-__version__ = "1.0.14a3"
+__version__ = "1.0.14"
 SOLIDITY_VERSION = "0.8.26"
 solcx.install_solc(SOLIDITY_VERSION)
 solcx.set_solc_version(SOLIDITY_VERSION)
@@ -69,6 +70,8 @@ class Sneko(App):
     w3 = None
     contract = None
     constructor_args = reactive("constructor args ~")
+    solidity_loaded = False
+    vyper_loaded = False
 
     def watch_show_tree(self, show_tree: bool) -> None:
         """Called when show_tree is modified."""
@@ -87,7 +90,7 @@ class Sneko(App):
         ):
             yield Container(
                 DirectoryTree(path, id="tree-view"),
-                TextArea.code_editor(text="", id="code-view"),
+                TextArea.code_editor(text="", id="code-view", theme="vscode_dark"),
                 id="editor",
             )
         with TabbedContent():
@@ -171,6 +174,17 @@ class Sneko(App):
         else:
             input.placeholder = constructor_args
             input.disabled = False
+
+    async def load_syntax_highlighting(self, lang: str) -> None:
+        code_view = self.query_one("#code-view", TextArea)
+        code_view.loading = True
+        if lang == "solidity":
+            tst.install_parser("https://github.com/JoranHonig/tree-sitter-solidity.git", "tree-sitter-solidity")
+            self.solidity_loaded = True
+        else:
+            tst.install_parser("https://github.com/madlabman/tree-sitter-vyper", "tree-sitter-vyper")
+            self.vyper_loaded = True
+        code_view.loading = False
 
     async def on_mount(self) -> None:
         self.w3 = Web3(EthereumTesterProvider())
@@ -450,18 +464,11 @@ class Sneko(App):
                 return declaration
         return None
 
-    # def is_tx_fn(self, name):
-    #     """Given a fn name, return whether it is a tx or call fn"""
-    #
-    #     fn_abi = self.get_contract_fn_abi(name)
-    #     return fn_abi["stateMutability"] in ["nonpayable", "payable"]
-
     async def handle_contract_fn_button(self, button_id: str) -> None:
         """Handle a button click for a contract function."""
 
         button_id = button_id.replace("fn-button-", "")
 
-        # is_tx = self.is_tx_fn(button_id)
         # determine if call or transact:
         fn_abi = self.get_contract_fn_abi(button_id)
         is_tx = fn_abi["stateMutability"] in ["nonpayable", "payable"]
@@ -555,23 +562,36 @@ class Sneko(App):
         code_view = self.query_one("#code-view", TextArea)
         try:
             syntax = Syntax.from_path(str(event.path))
+            code_view.load_text(syntax.code)
         except Exception as e:
             code_view.load_text(str(e))
             self.sub_title = "ERROR"
         else:
-            text_area = self.query_one(TextArea)
-            text_area.load_text(syntax.code)
-            self.query_one("#code-view").scroll_home(animate=False)
+            solidity_lang = tst.load_language('tree-sitter-solidity', "solidity")
+            sol_highlight_query = (Path(__file__).parent / "solidity.scm").read_text()
+            code_view.register_language(solidity_lang, sol_highlight_query)
+
+            vyper_lang = tst.load_language('tree-sitter-vyper', "vyper")
+            vyper_highlight_query = (Path(__file__).parent / "vyper.scm").read_text()
+            code_view.register_language(vyper_lang, vyper_highlight_query)
+
+            code_view.scroll_home(animate=False)
 
             file_name = Path(event.path).stem
             file_extension = Path(event.path).suffix
             self.sub_title = file_name + file_extension
 
             if file_extension == ".sol":
+                if not self.solidity_loaded:
+                    self.load_syntax_highlighting("solidity")
+                code_view.language = "solidity"
                 compiler_input = self.query_one("#compiler-version", Input)
                 compiler_input.value = f"solidity {SOLIDITY_VERSION}"
                 code_view.read_only = False
             elif file_extension == ".vy":
+                if not self.vyper_loaded:
+                    self.load_syntax_highlighting("vyper")
+                code_view.language = "vyper"
                 compiler_input = self.query_one("#compiler-version", Input)
                 compiler_input.value = f"vyper {vyper.version.version}"
                 code_view.read_only = True
