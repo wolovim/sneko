@@ -175,14 +175,20 @@ class Sneko(App):
             input.placeholder = constructor_args
             input.disabled = False
 
-    async def load_syntax_highlighting(self, lang: str) -> None:
+    def load_syntax_highlighting(self, lang: str) -> None:
         code_view = self.query_one("#code-view", TextArea)
         code_view.loading = True
         if lang == "solidity":
             tst.install_parser("https://github.com/JoranHonig/tree-sitter-solidity.git", "tree-sitter-solidity")
+            solidity_lang = tst.load_language('tree-sitter-solidity', "solidity")
+            sol_highlight_query = (Path(__file__).parent / "solidity.scm").read_text()
+            code_view.register_language(solidity_lang, sol_highlight_query)
             self.solidity_loaded = True
         else:
             tst.install_parser("https://github.com/madlabman/tree-sitter-vyper", "tree-sitter-vyper")
+            vyper_lang = tst.load_language('tree-sitter-vyper', "vyper")
+            vyper_highlight_query = (Path(__file__).parent / "vyper.scm").read_text()
+            code_view.register_language(vyper_lang, vyper_highlight_query)
             self.vyper_loaded = True
         code_view.loading = False
 
@@ -567,14 +573,6 @@ class Sneko(App):
             code_view.load_text(str(e))
             self.sub_title = "ERROR"
         else:
-            solidity_lang = tst.load_language('tree-sitter-solidity', "solidity")
-            sol_highlight_query = (Path(__file__).parent / "solidity.scm").read_text()
-            code_view.register_language(solidity_lang, sol_highlight_query)
-
-            vyper_lang = tst.load_language('tree-sitter-vyper', "vyper")
-            vyper_highlight_query = (Path(__file__).parent / "vyper.scm").read_text()
-            code_view.register_language(vyper_lang, vyper_highlight_query)
-
             code_view.scroll_home(animate=False)
 
             file_name = Path(event.path).stem
