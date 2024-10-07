@@ -1,6 +1,6 @@
 [project]
 name = "sneko"
-version = "0.0.14"
+version = "0.1.0"
 description = "Terminal GUI for Ethereum smart contracts"
 authors = [
     { name = "Marc Garreau", email = "marc@ethereum.org" }

@@ -46,7 +46,7 @@ import tree_sitter_types.parser as tst
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-__version__ = "1.0.14"
+__version__ = "0.1.0"
 SOLIDITY_VERSION = "0.8.26"
 solcx.install_solc(SOLIDITY_VERSION)
 solcx.set_solc_version(SOLIDITY_VERSION)
