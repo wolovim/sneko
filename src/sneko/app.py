@@ -5,6 +5,7 @@ import solcx
 import subprocess
 import sys
 import vyper
+import tree_sitter_types.parser as tst
 
 from pathlib import Path
 from rich.syntax import Syntax
@@ -27,8 +28,9 @@ from textual.widgets import (
     TextArea,
 )
 from web3 import Web3, EthereumTesterProvider
-from sneko.utils import build_ape_project
-import tree_sitter_types.parser as tst
+
+from .config import Config
+from .utils import build_ape_project
 
 # import logging
 # from textual.logging import TextualHandler
@@ -42,47 +44,18 @@ import tree_sitter_types.parser as tst
 #     ],
 # )
 
-import importlib.metadata
-
-try:
-    __version__ = importlib.metadata.version("sneko")
-except importlib.metadata.PackageNotFoundError:
-    # Package is not installed, so we can't get the version this way.
-    # Fallback to reading from pyproject.toml
-    if sys.version_info >= (3, 11):
-        import tomllib
-    else:
-        import tomli as tomllib
-    from pathlib import Path
-
-    try:
-        pyproject_path = Path(__file__).resolve().parents[2] / "pyproject.toml"
-        with open(pyproject_path, "rb") as f:
-            pyproject_data = tomllib.load(f)
-        __version__ = pyproject_data["project"]["version"]
-    except (FileNotFoundError, KeyError):
-        __version__ = "unknown"
-
-SOLIDITY_VERSION = "0.8.26"
+BOLD = Config.BOLD
+RESET = Config.RESET
+SOLIDITY_VERSION = Config.SOLIDITY_VERSION
 solcx.install_solc(SOLIDITY_VERSION)
 solcx.set_solc_version(SOLIDITY_VERSION)
-
-# ANSI escape codes for bold text
-BOLD = "\033[1m"
-RESET = "\033[0m"
 
 
 class Sneko(App):
     """A terminal GUI for Ethereum smart contracts"""
 
-    CSS_PATH = "main.tcss"
-    BINDINGS = [
-        ("v", "noop", __version__),
-        ("f", "toggle_files", "Toggle Files"),
-        ("ctrl+p", "copy_to_clipboard", "Copy Code"),
-        ("ctrl+v", "paste_from_clipboard"),
-        ("q", "quit", "Quit"),
-    ]
+    CSS_PATH = Config.CSS_PATH
+    BINDINGS = Config.BINDINGS
 
     show_tree = var(True)
     abi = None
@@ -101,8 +74,7 @@ class Sneko(App):
     def compose(self) -> ComposeResult:
         """Render the UI"""
 
-        sneko_contracts_path = os.path.join(os.path.dirname(__file__), "contracts")
-        path = sneko_contracts_path if len(sys.argv) < 2 else sys.argv[1]
+        path = Config.DEFAULT_CONTRACTS_PATH if len(sys.argv) < 2 else sys.argv[1]
 
         yield Header()
         with Collapsible(
@@ -199,19 +171,14 @@ class Sneko(App):
         code_view = self.query_one("#code-view", TextArea)
         code_view.loading = True
         if lang == "solidity":
-            tst.install_parser(
-                "https://github.com/JoranHonig/tree-sitter-solidity.git",
-                "tree-sitter-solidity",
-            )
-            solidity_lang = tst.load_language("tree-sitter-solidity", "solidity")
+            tst.install_parser("https://github.com/JoranHonig/tree-sitter-solidity.git", "tree-sitter-solidity")
+            solidity_lang = tst.load_language('tree-sitter-solidity', "solidity")
             sol_highlight_query = (Path(__file__).parent / "solidity.scm").read_text()
             code_view.register_language(solidity_lang, sol_highlight_query)
             self.solidity_loaded = True
         else:
-            tst.install_parser(
-                "https://github.com/madlabman/tree-sitter-vyper", "tree-sitter-vyper"
-            )
-            vyper_lang = tst.load_language("tree-sitter-vyper", "vyper")
+            tst.install_parser("https://github.com/madlabman/tree-sitter-vyper", "tree-sitter-vyper")
+            vyper_lang = tst.load_language('tree-sitter-vyper', "vyper")
             vyper_highlight_query = (Path(__file__).parent / "vyper.scm").read_text()
             code_view.register_language(vyper_lang, vyper_highlight_query)
             self.vyper_loaded = True
@@ -667,7 +634,7 @@ def main():
         print("Error: too many arguments. See 'sneko --help' for usage.")
         sys.exit(1)
     elif sys.argv[1] in ["version", "-v", "--version"]:
-        print(__version__)
+        print(Config.__version__)
         sys.exit(0)
     elif sys.argv[1] in ["help", "-h", "--help"]:
         print(
