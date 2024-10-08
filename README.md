@@ -2,7 +2,7 @@
 
 Terminal GUI for compiling (Solidity and Vyper) smart contracts.
 
-<img width="760" alt="sneko-v0.0.5" src="https://github.com/wolovim/sneko/assets/3621728/c4e567f8-34d1-43dc-b404-94bcbaa6859a">
+<img width="760" alt="sneko-v0.1.1" src="https://github.com/user-attachments/assets/4975a2d3-b635-417d-947f-385e04a3ce85">
 
 ## install & usage
 
@@ -11,17 +11,6 @@ Terminal GUI for compiling (Solidity and Vyper) smart contracts.
 - `sneko` - to view default contracts
 - `sneko <path>` - to display an arbitrary directory
 
-## possible extensions
-
-- syntax highlighting
-- module support
-- select compiler version
-- eth-tester deploys + function & state read-outs
-- additional language support, e.g., Fe, Cairo
-- additional starter scripts
-- more default contracts, e.g, snekmate, solady
-- generate an Ape template project
-
 ## local development
 
 - install [rye](https://rye.astral.sh/guide/installation/)
@@ -29,3 +18,7 @@ Terminal GUI for compiling (Solidity and Vyper) smart contracts.
 - `textual console` in one pane
 - `textual run src/sneko/__init__.py --dev` in another pane
 - if not using textual devtools: `rye run sneko <path>`
+
+## motivation
+
+`sneko` started from a desire to "dogfood" EF Python tools (e.g., [web3.py](https://github.com/ethereum/web3.py)) in order to identify pain points and opportunities for improvement. Currently viewed as an experimental prototype editor - the sort of thing that will help you get off and running more quickly at a hackathon or illustrate a concept within a workshop. The aim is to grow `sneko` to include a well-rounded baseline of contracts and inspection tools for educational and prototyping purposes - not to be a production deployment environment.
