@@ -137,7 +137,7 @@ class Sneko(App):
             with TabPane("Playground", id="playground-tab"):
                 yield Container(
                     Horizontal(
-                        Static("Active account:", id="acct-label"),
+                        Button("Active account:", id="active-acct-button"),
                         Select((), id="acct-select"),
                         id="acct-select-horizontal",
                     ),
@@ -544,6 +544,10 @@ class Sneko(App):
             self.notify("Bytecode copied to clipboard")
         elif event.button.id == "generate-script-button":
             self.generate_script()
+        elif event.button.id == "active-acct-button":
+            active_account = self.query_one("#acct-select", Select).value
+            pyperclip.copy(active_account)
+            self.notify("Active account copied to clipboard")
         elif event.button.id == "deploy-button":
             await self.deploy_contract()
         elif event.button.id.startswith("fn-button-"):

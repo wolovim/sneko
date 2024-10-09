@@ -74,12 +74,11 @@ Sneko.-show-tree #tree-view {
 }
 
 #acct-select-horizontal {
+    margin-bottom: 1;
     height: auto;
 }
 
-#acct-label{
-    margin: 1 0;
-    width: 16;
+#active-acct-button {
 }
 
 #acct-select {
