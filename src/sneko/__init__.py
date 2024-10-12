@@ -1,4 +1,4 @@
-from .app import Sneko
+from sneko.app import Sneko
 
 
 def main():

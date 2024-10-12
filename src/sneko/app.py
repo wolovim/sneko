@@ -29,8 +29,8 @@ from textual.widgets import (
 )
 from web3 import Web3, EthereumTesterProvider
 
-from .config import Config
-from .utils import build_ape_project
+from sneko.config import Config
+from sneko.utils import build_ape_project
 
 # import logging
 # from textual.logging import TextualHandler
@@ -62,7 +62,7 @@ class Sneko(App):
     bytecode = None
     w3 = None
     contract = None
-    constructor_args = reactive("constructor args ~")
+    constructor_args = reactive("(Compile contract first!)")
     solidity_loaded = False
     vyper_loaded = False
 
@@ -144,10 +144,16 @@ class Sneko(App):
                     Static("", id="deploy-address"),
                     Static("", id="contract-balance"),
                     Horizontal(
-                        Button("Deploy", id="deploy-button", variant="success"),
+                        Button(
+                            "Deploy",
+                            id="deploy-button",
+                            variant="success",
+                            disabled=True
+                        ),
                         Input(
                             placeholder=f"{self.constructor_args}",
                             id="constructor-args",
+                            disabled=True,
                         ),
                         id="deploy-horizontal",
                     ),
@@ -201,7 +207,7 @@ class Sneko(App):
         sel.set_options(options)
         sel.value = self.active_account
 
-    def handle_compile_error(self, e) -> None:
+    async def handle_compile_error(self, e) -> None:
         if "vyper: command not found" in str(e):
             error_msg = f"{BOLD}A local installation of Vyper is required to compile Vyper contracts.{RESET}\n"
             error_msg += f"\n{str(e)}"
@@ -217,6 +223,10 @@ class Sneko(App):
         bytecode_button.disabled = True
         generate_script_button = self.query_one("#generate-script-button", Button)
         generate_script_button.disabled = True
+        generate_ape_button = self.query_one("#generate-ape-button", Button)
+        generate_ape_button.disabled = True
+
+        await self.nuke_playground()
 
         self.abi = None
         self.bytecode = None
@@ -248,8 +258,10 @@ class Sneko(App):
         generate_ape_button = self.query_one("#generate-ape-button", Button)
         generate_ape_button.disabled = False
 
+        deploy_button = self.query_one("#deploy-button", Button)
+        deploy_button.disabled = False
+
         self.query_one("#constructor-args", Input).value = ""
-        await self.clear_deployed_contract()
 
     async def compile_contract(self) -> None:
         self.contract = None
@@ -289,7 +301,7 @@ class Sneko(App):
                     text=True,
                 )
                 if contract.stderr:
-                    self.handle_compile_error(contract.stderr)
+                    await self.handle_compile_error(contract.stderr)
                     return
                 else:
                     contract_artifacts = contract.stdout.split("\n")
@@ -302,7 +314,7 @@ class Sneko(App):
             else:
                 raise Exception("Unsupported file extension")
         except Exception as e:
-            self.handle_compile_error(e)
+            await self.handle_compile_error(e)
             return
 
         await self.handle_compile_success()
@@ -325,12 +337,19 @@ class Sneko(App):
             self.notify(f"Error generating script: {e}", severity="error")
 
     async def clear_deployed_contract(self) -> None:
-        """Unmount deployed contract buttons and inputs."""
-
         container = self.query_one("#playground-fn-body", Static)
         await container.remove_children()
         address_display = self.query_one("#deploy-address", Static)
         address_display.update("")
+
+    async def nuke_playground(self) -> None:
+        """Unmount deployed contract buttons and inputs."""
+
+        await self.clear_deployed_contract()
+        deploy_button = self.query_one("#deploy-button", Button)
+        deploy_button.disabled = True
+        constructor_args = self.query_one("#constructor-args", Input)
+        constructor_args.value = ""
 
     def convert_string_to_typed_data(self, values, input_types):
         """Given a comma separated string of values, convert to typed data."""
@@ -597,7 +616,7 @@ class Sneko(App):
             compile_button = self.query_one("#compile-button", Button)
             compile_button.disabled = False
             self.reset_inputs()
-            await self.clear_deployed_contract()
+            await self.nuke_playground()
             self.query_one(TabbedContent).active = "compile-tab"
 
     def reset_inputs(self) -> None:
