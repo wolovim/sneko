@@ -1,21 +1,21 @@
 [project]
 name = "sneko"
-version = "0.1.1"
+version = "0.1.2"
 description = "Terminal GUI for Ethereum smart contracts"
 authors = [
     { name = "Marc Garreau", email = "marc@ethereum.org" }
 ]
 dependencies = [
-    "py-solc-x",
-    "pyperclip",
-    "textual[syntax]>=0.82.0",
-    "vyper==0.4.0",
-    "web3==7.0.0b7",
     "eth-tester>=0.12.0b1",
     "py-evm>=0.10.1b1",
+    "py-solc-x",
+    "pyperclip",
     "snekmate>=0.1.0",
+    "textual[syntax]>=0.83.0",
+    "tree-sitter-types==0.0.2",
     "tree-sitter>=0.20.1",
-    "tree-sitter-types>=0.0.2",
+    "vyper==0.4.0",
+    "web3==7.0.0b7",
 ]
 readme = "README.md"
 requires-python = ">= 3.10"

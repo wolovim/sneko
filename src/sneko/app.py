@@ -63,6 +63,7 @@ class Sneko(App):
     w3 = None
     contract = None
     constructor_args = reactive("(Compile contract first!)")
+    contract_path = None
     solidity_loaded = False
     vyper_loaded = False
 
@@ -294,7 +295,7 @@ class Sneko(App):
                 self.bytecode = json.dumps(contract_interface["bin"])
             # VYPER:
             elif file_extension == ".vy":
-                contract_path = Path(self.sub_title)
+                contract_path = Path(self.contract_path)
                 contract = subprocess.run(
                     ["vyper", contract_path.resolve(), "-f", "abi,bytecode"],
                     capture_output=True,
@@ -581,6 +582,7 @@ class Sneko(App):
 
         event.stop()
         code_view = self.query_one("#code-view", TextArea)
+        self.contract_path = event.path
         try:
             syntax = Syntax.from_path(str(event.path))
             code_view.load_text(syntax.code)
