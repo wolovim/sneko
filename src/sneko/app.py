@@ -10,7 +10,7 @@ import tree_sitter_types.parser as tst
 from pathlib import Path
 from rich.syntax import Syntax
 
-from textual import log, on
+from textual import log, on, work
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal
 from textual.reactive import var, reactive
@@ -174,28 +174,32 @@ class Sneko(App):
             input.placeholder = constructor_args
             input.disabled = False
 
-    def load_syntax_highlighting(self, lang: str) -> None:
+    @work(exclusive=True, thread=True)
+    async def load_syntax_highlighting(self) -> None:
+        """In the background, load syntax highlighting for Solidity and Vyper."""
+
         code_view = self.query_one("#code-view", TextArea)
-        code_view.loading = True
-        if lang == "solidity":
-            tst.install_parser("https://github.com/JoranHonig/tree-sitter-solidity.git", "tree-sitter-solidity")
-            solidity_lang = tst.load_language('tree-sitter-solidity', "solidity")
-            sol_highlight_query = (Path(__file__).parent / "solidity.scm").read_text()
-            code_view.register_language(solidity_lang, sol_highlight_query)
-            self.solidity_loaded = True
-        else:
-            tst.install_parser("https://github.com/madlabman/tree-sitter-vyper", "tree-sitter-vyper")
-            vyper_lang = tst.load_language('tree-sitter-vyper', "vyper")
-            vyper_highlight_query = (Path(__file__).parent / "vyper.scm").read_text()
-            code_view.register_language(vyper_lang, vyper_highlight_query)
-            self.vyper_loaded = True
-        code_view.loading = False
+
+        # Solidity
+        tst.install_parser("https://github.com/JoranHonig/tree-sitter-solidity", "tree-sitter-solidity")
+        solidity_lang = tst.load_language('tree-sitter-solidity', "solidity")
+        sol_highlight_query = (Path(__file__).parent / "solidity.scm").read_text()
+        code_view.register_language(solidity_lang, sol_highlight_query)
+        self.solidity_loaded = True
+
+        # Vyper
+        tst.install_parser("https://github.com/madlabman/tree-sitter-vyper", "tree-sitter-vyper")
+        vyper_lang = tst.load_language('tree-sitter-vyper', "vyper")
+        vyper_highlight_query = (Path(__file__).parent / "vyper.scm").read_text()
+        code_view.register_language(vyper_lang, vyper_highlight_query)
+        self.vyper_loaded = True
 
     async def on_mount(self) -> None:
         self.w3 = Web3(EthereumTesterProvider())
         self.active_account = self.w3.eth.accounts[0]
         await self.update_account_balances()
         self.query_one(DirectoryTree).focus()
+        self.load_syntax_highlighting()
 
     async def update_account_balances(self) -> None:
         w3 = self.w3
@@ -597,18 +601,16 @@ class Sneko(App):
             self.sub_title = file_name + file_extension
 
             if file_extension == ".sol":
-                if not self.solidity_loaded:
-                    self.load_syntax_highlighting("solidity")
-                code_view.language = "solidity"
                 compiler_input = self.query_one("#compiler-version", Input)
                 compiler_input.value = f"solidity {SOLIDITY_VERSION}"
+                if self.solidity_loaded:
+                    code_view.language = "solidity"
                 code_view.read_only = False
             elif file_extension == ".vy":
-                if not self.vyper_loaded:
-                    self.load_syntax_highlighting("vyper")
-                code_view.language = "vyper"
                 compiler_input = self.query_one("#compiler-version", Input)
                 compiler_input.value = f"vyper {vyper.version.version}"
+                if self.vyper_loaded:
+                    code_view.language = "vyper"
                 code_view.read_only = True
             else:
                 compiler_input = self.query_one("#compiler-version", Input)
