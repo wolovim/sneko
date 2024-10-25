@@ -32,8 +32,7 @@ def cli(ecosystem, network, provider):
     click.echo(f"Deployed contract to {contract.address} on {ecosystem.name}:{network.name}.")
 """
 
-OZ_CONFIG = """
-dependencies:
+OZ_CONFIG = """dependencies:
  - name: OpenZeppelin
    github: OpenZeppelin/openzeppelin-contracts
    version: 5.0.2
@@ -99,8 +98,58 @@ def test_smoke(acct1, acct2, acct3, example_contract):
     # assert example_contract.state_value == "something"
 """
 
+POPUPFAUCET_CONFTEST = """import pytest
+
+
+@pytest.fixture
+def acct1(accounts):
+    return accounts[0]
+
+
+@pytest.fixture
+def acct2(accounts):
+    return accounts[1]
+
+
+@pytest.fixture
+def acct3(accounts):
+    return accounts[2]
+
+
+@pytest.fixture
+def contract_faucet(acct1, project):
+    return acct1.deploy(project.PopupFaucet, acct1.address)
+"""
+
+POPUPFAUCET_TEST = """ import pytest
+from web3 import Web3
+
+
+drip_amount = Web3.to_wei("0.0001", "ether")
+
+
+def test_smoke(acct1, acct2, acct3, contract_faucet):
+    assert acct1.balance > 0
+    assert acct2.balance > 0
+    assert acct3.balance > 0
+
+
+def test_faucet_creation(acct1, contract_faucet):
+    contract_faucet.create("devcon", sender=acct1, value=drip_amount * 10)
+    assert contract_faucet.codeFundsAvailable("devcon") == drip_amount * 10
+
+
+def test_faucet_drip(acct1, acct2, contract_faucet):
+    original_balance = acct2.balance
+    contract_faucet.create("devcon", sender=acct1, value=drip_amount * 10)
+    contract_faucet.drip(acct2, "devcon", sender=acct1)
+    assert contract_faucet.codeFundsAvailable("devcon") == drip_amount * 9
+    assert acct2.balance == original_balance + drip_amount
+"""
+
 
 def build_ape_project(file_name, code):
+    is_popupfaucet = file_name == "PopupFaucet.sol"
     suffix = file_name.split(".")[-1]
     cwd = Path.cwd()
 
@@ -126,11 +175,15 @@ def build_ape_project(file_name, code):
 
     conftest_path = project_folder / "tests" / "conftest.py"
     conftest_path.touch()
-    conftest_path.write_text(CONFTEST_CONTENT, encoding="utf8")
+    conftest_path.write_text(
+        POPUPFAUCET_CONFTEST if is_popupfaucet else CONFTEST_CONTENT, encoding="utf8"
+    )
 
     smoke_test_path = project_folder / "tests" / "test_example_contract.py"
     smoke_test_path.touch()
-    smoke_test_path.write_text(SMOKE_TEST_CONTENT, encoding="utf8")
+    smoke_test_path.write_text(
+        POPUPFAUCET_TEST if is_popupfaucet else SMOKE_TEST_CONTENT, encoding="utf8"
+    )
 
     ape_config = project_folder / CONFIG_FILE_NAME
     ape_config.write_text(
@@ -143,6 +196,9 @@ def build_ape_project(file_name, code):
 
     deploy_script = project_folder / "scripts" / "deploy.py"
     deploy_script.touch()
-    deploy_script.write_text(DEPLOY_SCRIPT, encoding="utf8")
+    deploy_script.write_text(
+        DEPLOY_SCRIPT.replace("YourContractName", file_name.split(".")[0]),
+        encoding="utf8",
+    )
 
     print(f"{project_name} is written in {CONFIG_FILE_NAME}")

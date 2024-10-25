@@ -149,7 +149,7 @@ class Sneko(App):
                             "Deploy",
                             id="deploy-button",
                             variant="success",
-                            disabled=True
+                            disabled=True,
                         ),
                         Input(
                             placeholder=f"{self.constructor_args}",
@@ -181,15 +181,19 @@ class Sneko(App):
         code_view = self.query_one("#code-view", TextArea)
 
         # Solidity
-        tst.install_parser("https://github.com/JoranHonig/tree-sitter-solidity", "tree-sitter-solidity")
-        solidity_lang = tst.load_language('tree-sitter-solidity', "solidity")
+        tst.install_parser(
+            "https://github.com/JoranHonig/tree-sitter-solidity", "tree-sitter-solidity"
+        )
+        solidity_lang = tst.load_language("tree-sitter-solidity", "solidity")
         sol_highlight_query = (Path(__file__).parent / "solidity.scm").read_text()
         code_view.register_language(solidity_lang, sol_highlight_query)
         self.solidity_loaded = True
 
         # Vyper
-        tst.install_parser("https://github.com/madlabman/tree-sitter-vyper", "tree-sitter-vyper")
-        vyper_lang = tst.load_language('tree-sitter-vyper', "vyper")
+        tst.install_parser(
+            "https://github.com/madlabman/tree-sitter-vyper", "tree-sitter-vyper"
+        )
+        vyper_lang = tst.load_language("tree-sitter-vyper", "vyper")
         vyper_highlight_query = (Path(__file__).parent / "vyper.scm").read_text()
         code_view.register_language(vyper_lang, vyper_highlight_query)
         self.vyper_loaded = True

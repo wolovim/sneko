@@ -20,6 +20,7 @@ except importlib.metadata.PackageNotFoundError:
     except (FileNotFoundError, KeyError):
         __version__ = "unknown"
 
+
 class Config:
     VERSION = __version__
     SOLIDITY_VERSION = "0.8.26"
