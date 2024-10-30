@@ -55,7 +55,8 @@ So, you've generated an Ape project using sneko...
 ## Using Ape
 
 - Run tests: `ape test`
-- Deploy script: `ape run deploy`
+- Deploy script: `ape run deploy --network optimism:sepolia`
+- Ape [documentation](https://docs.apeworx.io/ape/stable/)
 """
 
 CONFTEST_CONTENT = """import pytest
@@ -121,7 +122,7 @@ def contract_faucet(acct1, project):
     return acct1.deploy(project.PopupFaucet, acct1.address)
 """
 
-POPUPFAUCET_TEST = """ import pytest
+POPUPFAUCET_TEST = """import pytest
 from web3 import Web3
 
 
@@ -189,7 +190,10 @@ def build_ape_project(file_name, code):
     ape_config.write_text(
         f"name: {project_name}\n\n"
         f"plugins:\n"
-        f"  - name: {'solidity' if suffix == 'sol' else 'vyper'}\n\n"
+        f"  - name: {'solidity' if suffix == 'sol' else 'vyper'}\n"
+        f"  - name: arbitrum\n"
+        f"  - name: base\n"
+        f"  - name: optimism\n\n"
         f"{OZ_CONFIG if suffix == 'sol' else ''}",
         encoding="utf8",
     )

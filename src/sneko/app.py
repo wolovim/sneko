@@ -408,9 +408,6 @@ class Sneko(App):
             for abi_value in contract.abi:
                 if abi_value["type"] == "constructor":
                     constructor_types = abi_value["inputs"]
-            if constructor_types is None:
-                self.notify("No constructor method found", severity="error")
-                return
             constructor_arg_input = self.query_one("#constructor-args", Input).value
 
             tx_body = {"from": self.active_account}

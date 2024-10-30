@@ -11,7 +11,7 @@ dependencies = [
     "py-solc-x",
     "pyperclip",
     "snekmate>=0.1.0",
-    "textual[syntax]>=0.83.0",
+    "textual[syntax]>=0.85.1",
     "tree-sitter-types==0.0.2",
     "tree-sitter>=0.20.1",
     "vyper==0.4.0",

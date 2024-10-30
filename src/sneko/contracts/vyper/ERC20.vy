@@ -1,4 +1,5 @@
 # pragma version ~=0.4.0
+# based on: https://github.com/pcaversaccio/snekmate/blob/main/src/snekmate/tokens/mocks/erc20_mock.vy
 
 from ethereum.ercs import IERC20
 from ethereum.ercs import IERC20Detailed

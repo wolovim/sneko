@@ -181,7 +181,7 @@ snekmate==0.1.0
     # via sneko
 sortedcontainers==2.4.0
     # via trie
-textual==0.83.0
+textual==0.85.1
     # via sneko
 tomli==2.0.2
     # via black
