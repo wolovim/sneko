@@ -132,6 +132,7 @@ class Sneko(App):
                             variant="primary",
                             disabled=True,
                         ),
+                        id="generate-buttons",
                     ),
                     id="compilation-panel",
                 )

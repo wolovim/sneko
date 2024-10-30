@@ -40,7 +40,7 @@ certifi==2024.2.2
     # via requests
 charset-normalizer==3.3.2
     # via requests
-ckzg==1.0.2
+ckzg==2.0.1
     # via eth-account
     # via py-evm
 click==8.1.7
@@ -55,7 +55,7 @@ eth-abi==5.1.0
     # via eth-account
     # via eth-tester
     # via web3
-eth-account==0.13.0
+eth-account==0.13.4
     # via eth-tester
     # via web3
 eth-bloom==3.0.1
@@ -76,14 +76,14 @@ eth-rlp==2.1.0
     # via eth-account
 eth-tester==0.12.0b1
     # via sneko
-eth-typing==4.4.0
+eth-typing==5.0.1
     # via eth-abi
     # via eth-keys
     # via eth-utils
     # via py-ecc
     # via py-evm
     # via web3
-eth-utils==4.1.1
+eth-utils==5.1.0
     # via eth-abi
     # via eth-account
     # via eth-keyfile
@@ -240,6 +240,8 @@ tree-sitter-types==0.0.2
     # via sneko
 trie==3.0.1
     # via py-evm
+types-requests==2.32.0.20241016
+    # via web3
 typing-extensions==4.11.0
     # via black
     # via eth-rlp
@@ -254,11 +256,12 @@ uc-micro-py==1.0.3
     # via linkify-it-py
 urllib3==2.2.1
     # via requests
+    # via types-requests
 vyper==0.4.0
     # via sneko
 wcwidth==0.2.13
     # via prompt-toolkit
-web3==7.0.0b7
+web3==7.4.0
     # via sneko
 websockets==12.0
     # via web3

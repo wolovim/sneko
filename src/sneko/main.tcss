@@ -35,6 +35,10 @@ Sneko.-show-tree #tree-view {
     width: auto;
 }
 
+#compile-tab {
+    height: auto;
+}
+
 #compilation-panel {
     height: auto;
 }
@@ -45,6 +49,13 @@ Sneko.-show-tree #tree-view {
 
 #compile-button {
     margin-bottom: 1;
+}
+
+#generate-buttons {
+    height: auto;
+}
+
+#playground-tab {
 }
 
 #solidity-version {
