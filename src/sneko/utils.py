@@ -33,13 +33,13 @@ def cli(ecosystem, network, provider):
 """
 
 OZ_CONFIG = """dependencies:
- - name: OpenZeppelin
-   github: OpenZeppelin/openzeppelin-contracts
-   version: 5.0.2
+  - name: OpenZeppelin
+    github: OpenZeppelin/openzeppelin-contracts
+    version: 5.0.2
 
 solidity:
- import_remapping:
-  - "@openzeppelin=OpenZeppelin/5.0.2"
+  import_remapping:
+    - "@openzeppelin=OpenZeppelin/5.0.2"
 """
 
 README_CONTENT = """# sneko-ape-project

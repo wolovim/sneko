@@ -334,7 +334,7 @@ class Sneko(App):
 
         abi = self.query_one("#abi-view", Input).value
         bytecode = self.query_one("#bytecode-view", Input).value
-        content = f"ABI={abi}\nBYTECODE={bytecode}\n\n"
+        content = f"ABI='{abi}'\nBYTECODE={bytecode}\n\n"
 
         try:
             path = os.path.join(os.path.dirname(__file__), "snippets", "script.py")
@@ -663,7 +663,7 @@ def main():
         print("Error: too many arguments. See 'sneko --help' for usage.")
         sys.exit(1)
     elif sys.argv[1] in ["version", "-v", "--version"]:
-        print(Config.__version__)
+        print(Config.VERSION)
         sys.exit(0)
     elif sys.argv[1] in ["help", "-h", "--help"]:
         print(
